@@ -487,7 +487,34 @@ const App: React.FC = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [orders, setOrders] = useState<any[]>([]);
+  const [allOrders, setAllOrders] = useState<any[]>([]); // For Admin
   const [profile, setProfile] = useState<{ points: number; full_name?: string } | null>(null);
+
+  const isAdmin = user?.email === 'natanael83@gmail.com'; // Change to your actual admin email
+
+  const fetchAllOrders = async () => {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*, order_items(*), profiles(full_name)')
+      .order('created_at', { ascending: false });
+
+    if (error) console.error("Error fetching all orders:", error);
+    else setAllOrders(data || []);
+  };
+
+  const confirmOrder = async (orderId: string) => {
+    const { error } = await supabase
+      .from('orders')
+      .update({ status: 'confirmed' })
+      .eq('id', orderId);
+
+    if (error) alert("Erro ao confirmar: " + error.message);
+    else {
+      alert("Pedido confirmado! Pontos adicionados ao cliente.");
+      if (isAdmin) fetchAllOrders();
+      if (user) fetchOrders(user.id);
+    }
+  };
 
   const fetchProfile = async (userId: string) => {
     const { data, error } = await supabase
@@ -518,6 +545,7 @@ const App: React.FC = () => {
       if (session?.user) {
         fetchOrders(session.user.id);
         fetchProfile(session.user.id);
+        if (session.user.email === 'natanael83@gmail.com') fetchAllOrders();
       }
     });
 
@@ -527,9 +555,11 @@ const App: React.FC = () => {
       if (session?.user) {
         fetchOrders(session.user.id);
         fetchProfile(session.user.id);
+        if (session.user.email === 'natanael83@gmail.com') fetchAllOrders();
       } else {
         setOrders([]);
         setProfile(null);
+        setAllOrders([]);
       }
     });
 
@@ -664,10 +694,55 @@ const App: React.FC = () => {
               {/* Logout Button */}
               <button
                 onClick={() => supabase.auth.signOut()}
-                className="w-full py-4 text-red-500 font-black text-sm uppercase tracking-widest hover:bg-red-50 rounded-2xl transition-colors"
+                className="w-full py-4 text-red-500 font-black text-sm uppercase tracking-widest hover:bg-red-50 rounded-2xl transition-colors mb-8"
               >
                 Sair da Conta
               </button>
+
+              {/* Admin Section */}
+              {isAdmin && (
+                <div className="w-full border-t border-gray-100 pt-10">
+                  <div className="bg-emerald-950 rounded-[40px] p-8 text-white">
+                    <h3 className="text-xl font-black mb-6">Painel Administrativo</h3>
+                    <p className="text-emerald-100/60 text-xs font-bold uppercase tracking-widest mb-6">Pedidos para Confirmar</p>
+
+                    <div className="space-y-4">
+                      {allOrders.filter(o => o.status === 'pending').map((order) => (
+                        <div key={order.id} className="bg-white/5 border border-white/10 rounded-3xl p-5">
+                          <div className="flex justify-between items-start mb-4">
+                            <div>
+                              <p className="text-sm font-bold">Cliente: {order.profiles?.full_name || 'Usuário'}</p>
+                              <p className="text-[10px] text-white/40 uppercase tracking-tighter">ID: #{order.id.slice(0, 8)}</p>
+                            </div>
+                            <p className="font-black text-orange-500">
+                              {Number(order.total_amount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                            </p>
+                          </div>
+
+                          <div className="flex gap-2 mb-4 overflow-x-auto pb-2 no-scrollbar">
+                            {order.order_items?.map((item: any, idx: number) => (
+                              <span key={idx} className="text-[10px] bg-white/10 px-2 py-1 rounded-full whitespace-nowrap">
+                                {item.quantity}x {item.product_name}
+                              </span>
+                            ))}
+                          </div>
+
+                          <button
+                            onClick={() => confirmOrder(order.id)}
+                            className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-lg active:scale-95"
+                          >
+                            Confirmar Pagamento & Dar Pontos
+                          </button>
+                        </div>
+                      ))}
+
+                      {allOrders.filter(o => o.status === 'pending').length === 0 && (
+                        <p className="text-center text-emerald-100/40 text-sm py-4">Nenhum pedido pendente.</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         );
