@@ -11,17 +11,17 @@ interface HeaderProps {
   showCart?: boolean;
 }
 
-export const Header: React.FC<HeaderProps> = ({ 
-  cartCount, 
-  onCartClick, 
-  onViewChange, 
+export const Header: React.FC<HeaderProps> = ({
+  cartCount,
+  onCartClick,
+  onViewChange,
   currentView,
-  showCart = true 
+  showCart = true
 }) => {
   return (
     <header className="sticky top-0 z-50 w-full bg-white shadow-sm border-b border-gray-100">
       <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-4 md:py-5">
-        <button 
+        <button
           onClick={() => onViewChange('home')}
           className="flex items-center gap-1 group transition-transform active:scale-95"
         >
@@ -31,25 +31,31 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-8">
-          <button 
+          <button
             onClick={() => onViewChange('home')}
             className={`text-sm font-bold tracking-wide uppercase transition-colors ${currentView === 'home' ? 'text-emerald-700' : 'text-gray-500 hover:text-emerald-700'}`}
           >
             Início
           </button>
-          <button 
+          <button
             onClick={() => onViewChange('products')}
             className={`text-sm font-bold tracking-wide uppercase transition-colors ${currentView === 'products' ? 'text-emerald-700' : 'text-gray-500 hover:text-emerald-700'}`}
           >
             Produtos
           </button>
-          <button 
-            onClick={() => onViewChange('profile')}
-            className={`text-sm font-bold tracking-wide uppercase transition-colors ${currentView === 'profile' ? 'text-emerald-700' : 'text-gray-500 hover:text-emerald-700'}`}
+          <button
+            onClick={() => onViewChange('about')}
+            className={`text-sm font-bold tracking-wide uppercase transition-colors ${currentView === 'about' ? 'text-emerald-700' : 'text-gray-500 hover:text-emerald-700'}`}
           >
             Sobre
           </button>
-          <button 
+          <button
+            onClick={() => onViewChange('profile')}
+            className={`text-sm font-bold tracking-wide uppercase transition-colors ${currentView === 'profile' ? 'text-emerald-700' : 'text-gray-500 hover:text-emerald-700'}`}
+          >
+            Minha Conta
+          </button>
+          <button
             onClick={onCartClick}
             className={`relative p-2 transition-all active:scale-90 ${currentView === 'cart' ? 'text-emerald-700' : 'text-gray-500 hover:text-emerald-700'}`}
             aria-label="Carrinho de compras"
@@ -62,10 +68,10 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </button>
         </nav>
-        
+
         <div className="flex items-center gap-4">
           {showCart && (
-            <button 
+            <button
               onClick={onCartClick}
               className="relative bg-gray-50 p-2.5 rounded-xl border border-gray-100 transition-all hover:bg-emerald-50 active:scale-95 md:hidden"
             >

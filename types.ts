@@ -14,7 +14,7 @@ export interface CartItem extends Product {
   selectedSize: string;
 }
 
-export type View = 'home' | 'products' | 'cart' | 'profile';
+export type View = 'home' | 'products' | 'cart' | 'profile' | 'about';
 
 export interface AppState {
   cart: CartItem[];

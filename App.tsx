@@ -575,7 +575,7 @@ const App: React.FC = () => {
         if (!user) {
           return (
             <div className="flex-1 bg-gradient-to-br from-emerald-900 via-emerald-800 to-orange-500 flex items-center justify-center p-6">
-              <Auth onSuccess={() => setView('home')} />
+              <Auth onSuccess={() => setView('profile')} />
             </div>
           );
         }
@@ -643,6 +643,37 @@ const App: React.FC = () => {
                     >
                       Sair da Conta
                     </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      case 'about':
+        return (
+          <div className="flex-1 bg-gradient-to-br from-emerald-900 via-emerald-800 to-orange-500">
+            <div className="max-w-7xl mx-auto px-6 py-20">
+              <div className="bg-white rounded-[60px] p-12 md:p-20 shadow-2xl border border-white/10 flex flex-col md:flex-row gap-12 items-center">
+                <div className="w-48 h-48 md:w-64 md:h-64 rounded-[50px] bg-gray-50 shrink-0 overflow-hidden shadow-2xl rotate-3">
+                  <img src="https://images.unsplash.com/photo-1596506306797-400db32e6a14?auto=format&fit=crop&q=80&w=800" alt="Sobre Nós" className="w-full h-full object-cover" />
+                </div>
+                <div>
+                  <span className="text-orange-500 font-black text-sm uppercase tracking-widest mb-4 block">Bem-vindo à NS Castanhas</span>
+                  <h2 className="text-4xl md:text-5xl font-black text-emerald-950 mb-6">Sua Saúde é <br /> Nossa Prioridade.</h2>
+                  <p className="text-gray-500 text-lg leading-relaxed max-w-2xl mb-10">
+                    Somos apaixonados por oferecer castanhas selecionadas, frescas e de alta qualidade.
+                    Nossa missão é facilitar o acesso a alimentos saudáveis e saborosos diretamente na sua casa,
+                    garantindo procedência e o melhor sabor em cada punhado.
+                  </p>
+                  <div className="flex flex-wrap gap-4">
+                    <div className="px-6 py-4 bg-gray-50 rounded-2xl border border-gray-100">
+                      <p className="text-emerald-900 font-black text-2xl">10k+</p>
+                      <p className="text-gray-400 font-bold text-xs uppercase tracking-tighter">Clientes Felizes</p>
+                    </div>
+                    <div className="px-6 py-4 bg-gray-50 rounded-2xl border border-gray-100">
+                      <p className="text-emerald-900 font-black text-2xl">100%</p>
+                      <p className="text-gray-400 font-bold text-xs uppercase tracking-tighter">Qualidade</p>
+                    </div>
                   </div>
                 </div>
               </div>
