@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Moon, Sun, Instagram, ChevronRight, MessageCircle, ShoppingBasket, 
+import {
+  Moon, Sun, Instagram, ChevronRight, MessageCircle, ShoppingBasket,
   Trash2, ArrowRight, Loader2, ChevronLeft, Heart, Minus, Plus, Check, ShoppingBag,
   ArrowLeft, Lock, X
 } from 'lucide-react';
@@ -8,12 +8,15 @@ import { View, CartItem, Product } from './types';
 import { SIZES, WHATSAPP_NUMBER, INSTAGRAM_HANDLE, FALLBACK_PRODUCTS } from './constants';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
+import { supabase } from './supabase';
+import { Auth } from './components/Auth';
+import { User } from '@supabase/supabase-js';
 
 // Mocks to replace Firebase
 const fetchProducts = async (): Promise<Product[]> => {
   // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 800));
-  
+
   // Return fallback products, ensuring all have an image
   return FALLBACK_PRODUCTS.map(p => ({
     ...p,
@@ -44,7 +47,7 @@ const ProductModal: React.FC<{
 }> = ({ product, onClose, onAddToCart }) => {
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState('500g');
-  
+
   // Pricing logic
   const getPriceMultiplier = (size: string) => {
     if (size === '250g') return 0.6;
@@ -66,62 +69,61 @@ const ProductModal: React.FC<{
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onClick={onClose} />
       <div className="bg-white w-full max-w-sm rounded-[32px] overflow-hidden relative shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
-        <button 
-          onClick={onClose} 
+        <button
+          onClick={onClose}
           className="absolute top-4 right-4 w-8 h-8 bg-black/20 hover:bg-black/30 rounded-full flex items-center justify-center transition-colors z-10 backdrop-blur-md"
         >
-            <X className="w-5 h-5 text-white" />
+          <X className="w-5 h-5 text-white" />
         </button>
-        
+
         <div className="h-56 bg-gray-100 relative shrink-0">
-            <img 
-              src={product.image || SIZE_IMAGES['500g']} 
-              alt={product.name} 
-              className="w-full h-full object-cover" 
-            />
+          <img
+            src={product.image || SIZE_IMAGES['500g']}
+            alt={product.name}
+            className="w-full h-full object-cover"
+          />
         </div>
 
         <div className="p-6 overflow-y-auto">
-            <h3 className="text-xl font-black text-emerald-950 leading-tight mb-2">{product.name}</h3>
-            <p className="text-gray-500 text-sm mb-6 leading-relaxed">{product.description}</p>
-            
-            {/* Size Selector */}
-            <div className="mb-6">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Escolha o Peso</p>
-                <div className="flex gap-2">
-                    {SIZES.map(size => (
-                        <button
-                            key={size}
-                            onClick={() => setSelectedSize(size)}
-                            className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all border ${
-                                selectedSize === size 
-                                ? 'bg-emerald-900 text-white border-emerald-900 shadow-lg shadow-emerald-900/20' 
-                                : 'bg-white text-gray-400 border-gray-100 hover:border-emerald-200'
-                            }`}
-                        >
-                            {size}
-                        </button>
-                    ))}
-                </div>
-            </div>
+          <h3 className="text-xl font-black text-emerald-950 leading-tight mb-2">{product.name}</h3>
+          <p className="text-gray-500 text-sm mb-6 leading-relaxed">{product.description}</p>
 
-            <div className="flex items-center justify-between gap-4 mt-auto">
-                <div className="flex items-center bg-gray-50 rounded-xl border border-gray-100 h-14 px-2 shrink-0">
-                    <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-10 h-full flex items-center justify-center text-lg text-emerald-900 font-bold hover:bg-gray-100 rounded-lg transition-colors">-</button>
-                    <span className="w-8 text-center font-black text-gray-900 text-lg">{quantity}</span>
-                    <button onClick={() => setQuantity(quantity + 1)} className="w-10 h-full flex items-center justify-center text-lg text-emerald-900 font-bold hover:bg-gray-100 rounded-lg transition-colors">+</button>
-                </div>
-                <button 
-                    onClick={() => {
-                        onAddToCart(product, quantity, selectedSize);
-                        onClose();
-                    }}
-                    className="flex-1 bg-emerald-900 text-white h-14 rounded-xl font-bold flex flex-col items-center justify-center shadow-xl shadow-emerald-900/20 active:scale-95 transition-transform hover:bg-emerald-800"
+          {/* Size Selector */}
+          <div className="mb-6">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Escolha o Peso</p>
+            <div className="flex gap-2">
+              {SIZES.map(size => (
+                <button
+                  key={size}
+                  onClick={() => setSelectedSize(size)}
+                  className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all border ${selectedSize === size
+                      ? 'bg-emerald-900 text-white border-emerald-900 shadow-lg shadow-emerald-900/20'
+                      : 'bg-white text-gray-400 border-gray-100 hover:border-emerald-200'
+                    }`}
                 >
-                    <span className="text-[10px] font-medium opacity-80 uppercase tracking-widest">Adicionar</span>
-                    <span className="text-lg leading-none">{(currentPrice * quantity).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                  {size}
                 </button>
+              ))}
             </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-4 mt-auto">
+            <div className="flex items-center bg-gray-50 rounded-xl border border-gray-100 h-14 px-2 shrink-0">
+              <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-10 h-full flex items-center justify-center text-lg text-emerald-900 font-bold hover:bg-gray-100 rounded-lg transition-colors">-</button>
+              <span className="w-8 text-center font-black text-gray-900 text-lg">{quantity}</span>
+              <button onClick={() => setQuantity(quantity + 1)} className="w-10 h-full flex items-center justify-center text-lg text-emerald-900 font-bold hover:bg-gray-100 rounded-lg transition-colors">+</button>
+            </div>
+            <button
+              onClick={() => {
+                onAddToCart(product, quantity, selectedSize);
+                onClose();
+              }}
+              className="flex-1 bg-emerald-900 text-white h-14 rounded-xl font-bold flex flex-col items-center justify-center shadow-xl shadow-emerald-900/20 active:scale-95 transition-transform hover:bg-emerald-800"
+            >
+              <span className="text-[10px] font-medium opacity-80 uppercase tracking-widest">Adicionar</span>
+              <span className="text-lg leading-none">{(currentPrice * quantity).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -146,9 +148,9 @@ const HomeView: React.FC<{
       <div className="max-w-7xl w-full mx-auto grid md:grid-cols-2 gap-12 items-center">
         <div className="flex flex-col items-center md:items-start text-center md:text-left relative z-10">
           <div className={`md:hidden mx-auto w-64 h-64 rounded-full bg-emerald-700/50 p-2 border-4 border-white/10 mt-4 mb-8 overflow-hidden shadow-2xl transition-all duration-300 ${isTransitioning ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}>
-            <img 
-              src={SIZE_IMAGES[selectedSize] || SIZE_IMAGES['500g']} 
-              alt="Main Nuts" 
+            <img
+              src={SIZE_IMAGES[selectedSize] || SIZE_IMAGES['500g']}
+              alt="Main Nuts"
               className="w-full h-full object-cover rounded-full"
             />
           </div>
@@ -159,7 +161,7 @@ const HomeView: React.FC<{
             Premium & Natural
           </span>
           <h2 className="text-5xl md:text-7xl lg:text-8xl font-black text-white mb-6 leading-[0.9]">
-            Sabor <br className="hidden md:block"/> <span className="text-orange-500">Puro.</span>
+            Sabor <br className="hidden md:block" /> <span className="text-orange-500">Puro.</span>
           </h2>
           <p className="text-white/70 text-base md:text-lg max-w-md leading-relaxed mb-10">
             Cultivadas com carinho, nossas castanhas trazem a energia da natureza direto para o seu dia. Um momento de prazer crocante em cada punhado.
@@ -174,11 +176,10 @@ const HomeView: React.FC<{
                 <button
                   key={size}
                   onClick={() => onSizeChange(size)}
-                  className={`w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center text-xs font-black transition-all border-2 ${
-                    selectedSize === size
+                  className={`w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center text-xs font-black transition-all border-2 ${selectedSize === size
                       ? 'bg-white text-emerald-900 border-white scale-110 shadow-xl shadow-white/10'
                       : 'bg-transparent text-white border-white/20 hover:border-white/50'
-                  }`}
+                    }`}
                 >
                   {size}
                 </button>
@@ -186,13 +187,13 @@ const HomeView: React.FC<{
             </div>
           </div>
           <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
-            <button 
+            <button
               onClick={onOrderNow}
               className="w-full sm:w-auto bg-white text-emerald-900 px-10 py-5 rounded-2xl font-black flex items-center justify-center gap-2 shadow-xl hover:scale-105 transition-all active:scale-95 text-lg"
             >
               Pedir agora <ArrowRight className="w-5 h-5" />
             </button>
-            <button 
+            <button
               onClick={() => window.open(`https://instagram.com/${INSTAGRAM_HANDLE}`, '_blank')}
               className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 text-white hover:bg-white/10 transition-colors"
             >
@@ -203,9 +204,9 @@ const HomeView: React.FC<{
         <div className="hidden md:flex justify-center items-center relative">
           <div className="absolute w-[120%] h-[120%] bg-white/5 rounded-full blur-3xl"></div>
           <div className={`relative w-full aspect-square max-w-lg rounded-[60px] bg-emerald-700/50 p-4 border border-white/10 overflow-hidden shadow-2xl transition-all duration-500 rotate-3 group hover:rotate-0 ${isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
-             <img 
-              src={SIZE_IMAGES[selectedSize] || SIZE_IMAGES['500g']} 
-              alt={`Premium Nuts ${selectedSize}`} 
+            <img
+              src={SIZE_IMAGES[selectedSize] || SIZE_IMAGES['500g']}
+              alt={`Premium Nuts ${selectedSize}`}
               className="w-full h-full object-cover rounded-[50px] group-hover:scale-110 transition-transform duration-1000"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-emerald-900/60 to-transparent"></div>
@@ -238,8 +239,8 @@ const ProductsView: React.FC<{
         {products.map((product) => {
           const inCart = cart.find(item => item.id === product.id);
           return (
-            <div 
-              key={product.id} 
+            <div
+              key={product.id}
               onClick={() => onProductClick(product)}
               className="group bg-white rounded-[40px] p-4 border border-white/10 flex flex-col h-full shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-2 cursor-pointer"
             >
@@ -282,40 +283,40 @@ const CartView: React.FC<{
 
   const handleCheckout = async () => {
     setIsSubmitting(true);
-    
+
     await saveOrderToFirestore(cart, total);
-    
+
     const text = `Olá! Gostaria de finalizar meu pedido:\n\n${cart.map(i => `*${i.quantity}x ${i.name}* (${i.selectedSize})`).join('\n')}\n\nSubtotal: ${subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}\nFrete: ${SHIPPING_COST.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}\n*Total: ${total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}*`;
-    
+
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`, '_blank');
-    
+
     setIsSubmitting(false);
   };
 
   if (cart.length === 0) {
-      return (
-        <div className="flex-1 bg-gradient-to-br from-emerald-900 via-emerald-800 to-orange-500 flex flex-col min-h-screen">
-             {/* Header even for empty cart */}
-             <div className="px-6 py-4 flex items-center justify-between sticky top-0 z-50">
-                <button onClick={onGoBack}><ArrowLeft className="w-6 h-6 text-white" /></button>
-                <div className="text-center">
-                    <p className="text-[10px] font-bold text-orange-300 uppercase tracking-widest">NS CASTANHAS</p>
-                    <h1 className="text-lg font-bold text-white">Meu Carrinho</h1>
-                </div>
-                <div className="w-6"></div> {/* Spacer */}
-             </div>
-             <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-                <div className="w-32 h-32 bg-white/10 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center mb-6 text-white/60">
-                    <ShoppingBasket className="w-16 h-16" />
-                </div>
-                <h3 className="text-2xl font-bold text-white mb-2">Seu carrinho está vazio</h3>
-                <p className="text-emerald-100 mb-8">Adicione produtos deliciosos agora mesmo.</p>
-                <button onClick={onGoBack} className="bg-white text-emerald-950 px-8 py-3 rounded-xl font-bold hover:bg-orange-50 transition-colors shadow-lg">
-                    Voltar as Compras
-                </button>
-             </div>
+    return (
+      <div className="flex-1 bg-gradient-to-br from-emerald-900 via-emerald-800 to-orange-500 flex flex-col min-h-screen">
+        {/* Header even for empty cart */}
+        <div className="px-6 py-4 flex items-center justify-between sticky top-0 z-50">
+          <button onClick={onGoBack}><ArrowLeft className="w-6 h-6 text-white" /></button>
+          <div className="text-center">
+            <p className="text-[10px] font-bold text-orange-300 uppercase tracking-widest">NS CASTANHAS</p>
+            <h1 className="text-lg font-bold text-white">Meu Carrinho</h1>
+          </div>
+          <div className="w-6"></div> {/* Spacer */}
         </div>
-      )
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+          <div className="w-32 h-32 bg-white/10 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center mb-6 text-white/60">
+            <ShoppingBasket className="w-16 h-16" />
+          </div>
+          <h3 className="text-2xl font-bold text-white mb-2">Seu carrinho está vazio</h3>
+          <p className="text-emerald-100 mb-8">Adicione produtos deliciosos agora mesmo.</p>
+          <button onClick={onGoBack} className="bg-white text-emerald-950 px-8 py-3 rounded-xl font-bold hover:bg-orange-50 transition-colors shadow-lg">
+            Voltar as Compras
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -339,97 +340,97 @@ const CartView: React.FC<{
       <div className="flex-1 overflow-y-auto p-4 space-y-3 pb-32 max-w-lg mx-auto w-full">
         {cart.map((item) => (
           <div key={`${item.id}-${item.selectedSize}`} className="bg-white p-4 rounded-3xl shadow-lg border border-white/10 flex gap-4 relative animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <button 
-                onClick={() => onRemove(item.id, item.selectedSize)}
-                className="absolute top-4 right-4 text-gray-300 hover:text-red-500 transition-colors p-1 z-10"
+            <button
+              onClick={() => onRemove(item.id, item.selectedSize)}
+              className="absolute top-4 right-4 text-gray-300 hover:text-red-500 transition-colors p-1 z-10"
             >
-                <Trash2 className="w-5 h-5" />
+              <Trash2 className="w-5 h-5" />
             </button>
-            
+
             <div className="w-24 h-24 rounded-2xl bg-gray-50 shrink-0 overflow-hidden">
-                <img src={item.image || SIZE_IMAGES[item.selectedSize] || SIZE_IMAGES['500g']} alt={item.name} className="w-full h-full object-cover" />
+              <img src={item.image || SIZE_IMAGES[item.selectedSize] || SIZE_IMAGES['500g']} alt={item.name} className="w-full h-full object-cover" />
             </div>
 
             <div className="flex-1 py-1 flex flex-col justify-between">
-                <div className="pr-8">
-                    <h3 className="font-bold text-gray-900 text-base leading-tight">{item.name}</h3>
-                    <p className="text-gray-400 text-sm font-medium mt-1">Peso: {item.selectedSize}</p>
-                    <div className="flex items-center gap-1.5 mt-2">
-                        <Check className="w-3.5 h-3.5 text-green-500" />
-                        <span className="text-xs font-bold text-green-600">Em estoque</span>
-                    </div>
+              <div className="pr-8">
+                <h3 className="font-bold text-gray-900 text-base leading-tight">{item.name}</h3>
+                <p className="text-gray-400 text-sm font-medium mt-1">Peso: {item.selectedSize}</p>
+                <div className="flex items-center gap-1.5 mt-2">
+                  <Check className="w-3.5 h-3.5 text-green-500" />
+                  <span className="text-xs font-bold text-green-600">Em estoque</span>
                 </div>
-                
-                <div className="flex items-end justify-between mt-3">
-                    <span className="text-lg font-black text-gray-900">
-                        {(item.price * item.quantity).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                    </span>
-                    
-                    <div className="flex items-center bg-gray-50 rounded-lg border border-gray-100 h-8">
-                        <button 
-                            onClick={() => onUpdateQty(item.id, -1)}
-                            className="w-8 h-full flex items-center justify-center text-gray-500 hover:text-gray-900 transition-colors text-lg font-medium"
-                        >−</button>
-                        <span className="w-6 text-center text-sm font-bold text-gray-900">{item.quantity}</span>
-                        <button 
-                            onClick={() => onUpdateQty(item.id, 1)}
-                            className="w-8 h-full flex items-center justify-center bg-orange-500 text-white rounded-lg shadow-sm hover:bg-orange-600 transition-colors"
-                        >
-                            <Plus className="w-4 h-4" />
-                        </button>
-                    </div>
+              </div>
+
+              <div className="flex items-end justify-between mt-3">
+                <span className="text-lg font-black text-gray-900">
+                  {(item.price * item.quantity).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                </span>
+
+                <div className="flex items-center bg-gray-50 rounded-lg border border-gray-100 h-8">
+                  <button
+                    onClick={() => onUpdateQty(item.id, -1)}
+                    className="w-8 h-full flex items-center justify-center text-gray-500 hover:text-gray-900 transition-colors text-lg font-medium"
+                  >−</button>
+                  <span className="w-6 text-center text-sm font-bold text-gray-900">{item.quantity}</span>
+                  <button
+                    onClick={() => onUpdateQty(item.id, 1)}
+                    className="w-8 h-full flex items-center justify-center bg-orange-500 text-white rounded-lg shadow-sm hover:bg-orange-600 transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
                 </div>
+              </div>
             </div>
           </div>
         ))}
 
         {/* Summary Card */}
         <div className="bg-white rounded-[30px] p-6 shadow-xl border border-gray-100 mt-6">
-            <h3 className="font-bold text-lg text-gray-900 mb-6">Resumo do Pedido</h3>
-            
-            <div className="space-y-3 mb-6">
-                <div className="flex justify-between items-center text-gray-500 text-sm font-medium">
-                    <span>Subtotal ({cart.length} itens)</span>
-                    <span className="text-gray-900">{subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
-                </div>
-                <div className="flex justify-between items-center text-gray-500 text-sm font-medium">
-                    <span>Frete</span>
-                    <span className="text-gray-900">{SHIPPING_COST.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
-                </div>
-            </div>
+          <h3 className="font-bold text-lg text-gray-900 mb-6">Resumo do Pedido</h3>
 
-            <div className="flex justify-between items-center pt-4 border-t border-gray-100 mb-6">
-                <span className="font-bold text-lg text-gray-900">Total</span>
-                <span className="font-black text-2xl text-orange-500">{total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+          <div className="space-y-3 mb-6">
+            <div className="flex justify-between items-center text-gray-500 text-sm font-medium">
+              <span>Subtotal ({cart.length} itens)</span>
+              <span className="text-gray-900">{subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
             </div>
+            <div className="flex justify-between items-center text-gray-500 text-sm font-medium">
+              <span>Frete</span>
+              <span className="text-gray-900">{SHIPPING_COST.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+            </div>
+          </div>
 
-            <div className="bg-green-50 rounded-xl py-3 px-4 flex items-center justify-center gap-2 text-green-800 text-xs font-bold uppercase tracking-wide">
-                <Lock className="w-3.5 h-3.5" />
-                Compra 100% Segura e Garantida
-            </div>
+          <div className="flex justify-between items-center pt-4 border-t border-gray-100 mb-6">
+            <span className="font-bold text-lg text-gray-900">Total</span>
+            <span className="font-black text-2xl text-orange-500">{total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+          </div>
+
+          <div className="bg-green-50 rounded-xl py-3 px-4 flex items-center justify-center gap-2 text-green-800 text-xs font-bold uppercase tracking-wide">
+            <Lock className="w-3.5 h-3.5" />
+            Compra 100% Segura e Garantida
+          </div>
         </div>
       </div>
 
       {/* Footer Button - Dark Glass */}
       <div className="bg-emerald-900/80 backdrop-blur-xl p-4 border-t border-white/10 sticky bottom-0 z-50 pb-8 md:pb-6 shadow-[0_-4px_20px_rgba(0,0,0,0.2)] w-full">
         <div className="max-w-lg mx-auto w-full">
-            <button 
-                onClick={handleCheckout}
-                disabled={isSubmitting}
-                className="w-full bg-white text-emerald-900 hover:bg-orange-50 py-4 rounded-2xl font-bold text-lg shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-70 disabled:active:scale-100"
-            >
-                {isSubmitting ? (
-                    <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        <span className="text-base">Processando...</span>
-                    </>
-                ) : (
-                    <>
-                        <span>Finalizar Compra</span>
-                        <ArrowRight className="w-5 h-5" />
-                    </>
-                )}
-            </button>
+          <button
+            onClick={handleCheckout}
+            disabled={isSubmitting}
+            className="w-full bg-white text-emerald-900 hover:bg-orange-50 py-4 rounded-2xl font-bold text-lg shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-70 disabled:active:scale-100"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span className="text-base">Processando...</span>
+              </>
+            ) : (
+              <>
+                <span>Finalizar Compra</span>
+                <ArrowRight className="w-5 h-5" />
+              </>
+            )}
+          </button>
         </div>
       </div>
     </div>
@@ -437,9 +438,9 @@ const CartView: React.FC<{
 };
 
 const LoadingView: React.FC = () => (
-    <div className="flex-1 flex items-center justify-center bg-white md:bg-gray-50">
-        <Loader2 className="w-12 h-12 text-emerald-700 animate-spin" />
-    </div>
+  <div className="flex-1 flex items-center justify-center bg-white md:bg-gray-50">
+    <Loader2 className="w-12 h-12 text-emerald-700 animate-spin" />
+  </div>
 );
 
 
@@ -451,6 +452,21 @@ const App: React.FC = () => {
   const [selectedSize, setSelectedSize] = useState('500g');
   const [darkMode, setDarkMode] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    // Check current session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const loadProducts = async () => {
     setIsLoading(true);
@@ -499,27 +515,55 @@ const App: React.FC = () => {
     if (isLoading && view === 'products') {
       return <LoadingView />;
     }
-    
+
     switch (view) {
       case 'home':
         return <HomeView onOrderNow={handleOrderNow} selectedSize={selectedSize} onSizeChange={setSelectedSize} />;
       case 'products':
         return <ProductsView products={products} onProductClick={handleProductClick} cart={cart} />;
       case 'cart':
-        return <CartView cart={cart} onUpdateQty={(id, delta) => setCart(prev => prev.map(i => i.id === id ? {...i, quantity: Math.max(1, i.quantity + delta)} : i))} onRemove={removeFromCart} onGoBack={() => setView('products')} />;
+        return <CartView cart={cart} onUpdateQty={(id, delta) => setCart(prev => prev.map(i => i.id === id ? { ...i, quantity: Math.max(1, i.quantity + delta) } : i))} onRemove={removeFromCart} onGoBack={() => setView('products')} />;
       case 'profile':
+        if (!user) {
+          return (
+            <div className="flex-1 bg-gradient-to-br from-emerald-900 via-emerald-800 to-orange-500 flex items-center justify-center p-6">
+              <Auth onSuccess={() => setView('home')} />
+            </div>
+          );
+        }
         return (
           <div className="flex-1 bg-gradient-to-br from-emerald-900 via-emerald-800 to-orange-500">
             <div className="max-w-7xl mx-auto px-6 py-20">
               <div className="bg-white rounded-[60px] p-12 md:p-20 shadow-2xl border border-white/10 flex flex-col md:flex-row gap-12 items-center">
-                <div className="w-48 h-48 md:w-64 md:h-64 rounded-[50px] bg-gray-50 shrink-0 overflow-hidden shadow-2xl rotate-3"><img src="https://picsum.photos/seed/ns_castanhas_profile/400/400" alt="Avatar" className="w-full h-full object-cover" /></div>
-                <div>
-                  <span className="text-orange-500 font-black text-sm uppercase tracking-widest mb-4 block">Bem-vindo à NS Castanhas</span>
-                  <h2 className="text-5xl font-black text-emerald-950 mb-6">Sua Saúde é <br/> Nossa Prioridade.</h2>
-                  <p className="text-gray-500 text-xl leading-relaxed max-w-2xl mb-10">Somos apaixonados por oferecer castanhas selecionadas, frescas e de alta qualidade. Nossa missão é facilitar o acesso a alimentos saudáveis e saborosos diretamente na sua casa.</p>
-                  <div className="flex flex-wrap gap-4">
-                    <div className="px-6 py-4 bg-gray-50 rounded-2xl border border-gray-100"><p className="text-emerald-900 font-black text-2xl">10k+</p><p className="text-gray-400 font-bold text-xs uppercase tracking-tighter">Clientes Felizes</p></div>
-                    <div className="px-6 py-4 bg-gray-50 rounded-2xl border border-gray-100"><p className="text-emerald-900 font-black text-2xl">100%</p><p className="text-gray-400 font-bold text-xs uppercase tracking-tighter">Orgânico</p></div>
+                <div className="w-48 h-48 md:w-64 md:h-64 rounded-[50px] bg-gray-50 shrink-0 overflow-hidden shadow-2xl rotate-3">
+                  <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`} alt="Avatar" className="w-full h-full object-cover" />
+                </div>
+                <div className="flex-1">
+                  <span className="text-orange-500 font-black text-sm uppercase tracking-widest mb-4 block">Sua Conta</span>
+                  <h2 className="text-4xl md:text-5xl font-black text-emerald-950 mb-2">{user.email?.split('@')[0]}</h2>
+                  <p className="text-gray-400 font-bold mb-8">{user.email}</p>
+
+                  <div className="flex flex-wrap gap-4 mb-10">
+                    <div className="px-6 py-4 bg-gray-50 rounded-2xl border border-gray-100 flex-1 min-w-[150px]">
+                      <p className="text-emerald-900 font-black text-2xl">0</p>
+                      <p className="text-gray-400 font-bold text-xs uppercase tracking-tighter">Pedidos Realizados</p>
+                    </div>
+                    <div className="px-6 py-4 bg-gray-50 rounded-2xl border border-gray-100 flex-1 min-w-[150px]">
+                      <p className="text-emerald-900 font-black text-2xl">VIP</p>
+                      <p className="text-gray-400 font-bold text-xs uppercase tracking-tighter">Nível de Cliente</p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <button className="bg-emerald-900 text-white px-8 py-4 rounded-2xl font-black shadow-lg hover:scale-105 transition-all">
+                      Meus Pedidos
+                    </button>
+                    <button
+                      onClick={() => supabase.auth.signOut()}
+                      className="bg-red-50 text-red-600 px-8 py-4 rounded-2xl font-black border border-red-100 hover:bg-red-100 transition-all"
+                    >
+                      Sair da Conta
+                    </button>
                   </div>
                 </div>
               </div>
@@ -530,7 +574,7 @@ const App: React.FC = () => {
         return <HomeView onOrderNow={handleOrderNow} selectedSize={selectedSize} onSizeChange={setSelectedSize} />;
     }
   };
-  
+
   // Define full screen views where global header/nav should be hidden
   const isFullScreenView = view === 'cart';
 
@@ -541,11 +585,11 @@ const App: React.FC = () => {
         {!isFullScreenView && (
           <Header cartCount={cart.reduce((a, b) => a + b.quantity, 0)} onCartClick={() => setView('cart')} onViewChange={setView} currentView={view} showCart={true} />
         )}
-        
+
         <main className={`flex-1 flex flex-col ${isFullScreenView ? 'min-h-screen' : 'min-h-[calc(100vh-80px)]'}`}>
-           {renderContent()}
+          {renderContent()}
         </main>
-        
+
         {/* Only show Dark Mode toggle if NOT in full screen views (to keep UI clean) */}
         {!isFullScreenView && (
           <button onClick={() => setDarkMode(!darkMode)} className="fixed bottom-24 md:bottom-12 right-6 md:right-12 w-16 h-16 bg-white rounded-2xl shadow-2xl flex items-center justify-center z-[60] transition-all hover:scale-110 active:scale-90 group border border-gray-100">
@@ -561,13 +605,13 @@ const App: React.FC = () => {
 
       {/* Product Selection Modal */}
       {selectedProduct && (
-        <ProductModal 
-            product={selectedProduct} 
-            onClose={() => setSelectedProduct(null)} 
-            onAddToCart={(p, qty, s) => {
-                addToCart(p, qty, s);
-                // Optionally auto-open cart: setView('cart');
-            }} 
+        <ProductModal
+          product={selectedProduct}
+          onClose={() => setSelectedProduct(null)}
+          onAddToCart={(p, qty, s) => {
+            addToCart(p, qty, s);
+            // Optionally auto-open cart: setView('cart');
+          }}
         />
       )}
     </div>
