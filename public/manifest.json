@@ -1,0 +1,21 @@
+{
+  "short_name": "NS Castanhas",
+  "name": "NS Castanhas - Premium & Natural",
+  "description": "O sabor puro das castanhas selecionadas diretamente para você.",
+  "icons": [
+    {
+      "src": "https://picsum.photos/seed/ns_logo/192/192",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://picsum.photos/seed/ns_logo/512/512",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#064e3b",
+  "background_color": "#ffffff"
+}
