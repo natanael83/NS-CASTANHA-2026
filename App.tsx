@@ -490,7 +490,7 @@ const App: React.FC = () => {
   const [allOrders, setAllOrders] = useState<any[]>([]); // For Admin
   const [profile, setProfile] = useState<{ points: number; full_name?: string } | null>(null);
 
-  const isAdmin = user?.email === 'natanael83@gmail.com'; // Change to your actual admin email
+  const isAdmin = user?.email === 'natanaelsouza28@gmail.com'; // E-mail de admin atualizado
 
   const fetchAllOrders = async () => {
     const { data, error } = await supabase
@@ -545,7 +545,7 @@ const App: React.FC = () => {
       if (session?.user) {
         fetchOrders(session.user.id);
         fetchProfile(session.user.id);
-        if (session.user.email === 'natanael83@gmail.com') fetchAllOrders();
+        if (session.user.email === 'natanaelsouza28@gmail.com') fetchAllOrders();
       }
     });
 
@@ -555,7 +555,7 @@ const App: React.FC = () => {
       if (session?.user) {
         fetchOrders(session.user.id);
         fetchProfile(session.user.id);
-        if (session.user.email === 'natanael83@gmail.com') fetchAllOrders();
+        if (session.user.email === 'natanaelsouza28@gmail.com') fetchAllOrders();
       } else {
         setOrders([]);
         setProfile(null);
