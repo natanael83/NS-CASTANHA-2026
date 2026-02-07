@@ -24,11 +24,44 @@ const fetchProducts = async (): Promise<Product[]> => {
   }));
 };
 
-const saveOrderToFirestore = async (cart: CartItem[], total: number) => {
-  // Simulate network delay
-  await new Promise(resolve => setTimeout(resolve, 1500));
-  console.log("Pedido processado localmente (Firebase removido):", { cart, total });
-  return "LOCAL-ORDER-" + Date.now();
+const saveOrderToSupabase = async (cart: CartItem[], total: number) => {
+  const { data: { session } } = await supabase.auth.getSession();
+  const userId = session?.user?.id;
+
+  // Insert order
+  const { data: order, error: orderError } = await supabase
+    .from('orders')
+    .insert({
+      user_id: userId,
+      total_amount: total,
+      status: 'pending'
+    })
+    .select()
+    .single();
+
+  if (orderError) {
+    console.error("Error saving order:", orderError);
+    return null;
+  }
+
+  // Insert order items
+  const orderItems = cart.map(item => ({
+    order_id: order.id,
+    product_name: item.name,
+    quantity: item.quantity,
+    size: item.selectedSize,
+    price: item.price
+  }));
+
+  const { error: itemsError } = await supabase
+    .from('order_items')
+    .insert(orderItems);
+
+  if (itemsError) {
+    console.error("Error saving order items:", itemsError);
+  }
+
+  return order.id;
 };
 
 // Images mapping for sizes
@@ -97,8 +130,8 @@ const ProductModal: React.FC<{
                   key={size}
                   onClick={() => setSelectedSize(size)}
                   className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all border ${selectedSize === size
-                      ? 'bg-emerald-900 text-white border-emerald-900 shadow-lg shadow-emerald-900/20'
-                      : 'bg-white text-gray-400 border-gray-100 hover:border-emerald-200'
+                    ? 'bg-emerald-900 text-white border-emerald-900 shadow-lg shadow-emerald-900/20'
+                    : 'bg-white text-gray-400 border-gray-100 hover:border-emerald-200'
                     }`}
                 >
                   {size}
@@ -177,8 +210,8 @@ const HomeView: React.FC<{
                   key={size}
                   onClick={() => onSizeChange(size)}
                   className={`w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center text-xs font-black transition-all border-2 ${selectedSize === size
-                      ? 'bg-white text-emerald-900 border-white scale-110 shadow-xl shadow-white/10'
-                      : 'bg-transparent text-white border-white/20 hover:border-white/50'
+                    ? 'bg-white text-emerald-900 border-white scale-110 shadow-xl shadow-white/10'
+                    : 'bg-transparent text-white border-white/20 hover:border-white/50'
                     }`}
                 >
                   {size}
@@ -284,7 +317,7 @@ const CartView: React.FC<{
   const handleCheckout = async () => {
     setIsSubmitting(true);
 
-    await saveOrderToFirestore(cart, total);
+    await saveOrderToSupabase(cart, total);
 
     const text = `Olá! Gostaria de finalizar meu pedido:\n\n${cart.map(i => `*${i.quantity}x ${i.name}* (${i.selectedSize})`).join('\n')}\n\nSubtotal: ${subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}\nFrete: ${SHIPPING_COST.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}\n*Total: ${total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}*`;
 
@@ -453,16 +486,31 @@ const App: React.FC = () => {
   const [darkMode, setDarkMode] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [orders, setOrders] = useState<any[]>([]);
+
+  const fetchOrders = async (userId: string) => {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*, order_items(*)')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) console.error("Error fetching orders:", error);
+    else setOrders(data || []);
+  };
 
   useEffect(() => {
     // Check current session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
+      if (session?.user) fetchOrders(session.user.id);
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      if (session?.user) fetchOrders(session.user.id);
+      else setOrders([]);
     });
 
     return () => subscription.unsubscribe();
@@ -545,14 +593,45 @@ const App: React.FC = () => {
 
                   <div className="flex flex-wrap gap-4 mb-10">
                     <div className="px-6 py-4 bg-gray-50 rounded-2xl border border-gray-100 flex-1 min-w-[150px]">
-                      <p className="text-emerald-900 font-black text-2xl">0</p>
+                      <p className="text-emerald-900 font-black text-2xl">{orders.length}</p>
                       <p className="text-gray-400 font-bold text-xs uppercase tracking-tighter">Pedidos Realizados</p>
                     </div>
                     <div className="px-6 py-4 bg-gray-50 rounded-2xl border border-gray-100 flex-1 min-w-[150px]">
-                      <p className="text-emerald-900 font-black text-2xl">VIP</p>
+                      <p className="text-emerald-900 font-black text-2xl">{orders.length > 5 ? 'VIP' : 'Bronze'}</p>
                       <p className="text-gray-400 font-bold text-xs uppercase tracking-tighter">Nível de Cliente</p>
                     </div>
                   </div>
+
+                  {orders.length > 0 && (
+                    <div className="mb-10">
+                      <h3 className="text-xl font-bold text-emerald-950 mb-6">Histórico de Pedidos</h3>
+                      <div className="space-y-4">
+                        {orders.slice(0, 3).map((order) => (
+                          <div key={order.id} className="bg-gray-50 border border-gray-100 rounded-3xl p-5 flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-bold text-emerald-900">Pedido #{order.id.slice(0, 8)}</p>
+                              <p className="text-xs text-gray-400 font-medium">{new Date(order.created_at).toLocaleDateString('pt-BR')}</p>
+                              <div className="flex gap-1 mt-1">
+                                {order.order_items.map((item: any, idx: number) => (
+                                  <span key={idx} className="text-[10px] bg-white px-2 py-0.5 rounded-full border border-gray-100 font-bold text-gray-500">
+                                    {item.quantity}x {item.product_name}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-black text-emerald-950">
+                                {Number(order.total_amount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                              </p>
+                              <span className="text-[10px] font-black uppercase tracking-widest text-orange-500">
+                                {order.status === 'pending' ? 'Pendente' : order.status}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex flex-col sm:flex-row gap-4">
                     <button className="bg-emerald-900 text-white px-8 py-4 rounded-2xl font-black shadow-lg hover:scale-105 transition-all">
