@@ -487,6 +487,18 @@ const App: React.FC = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [orders, setOrders] = useState<any[]>([]);
+  const [profile, setProfile] = useState<{ points: number; full_name?: string } | null>(null);
+
+  const fetchProfile = async (userId: string) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('points, full_name')
+      .eq('id', userId)
+      .single();
+
+    if (error) console.error("Error fetching profile:", error);
+    else setProfile(data);
+  };
 
   const fetchOrders = async (userId: string) => {
     const { data, error } = await supabase
@@ -503,14 +515,22 @@ const App: React.FC = () => {
     // Check current session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
-      if (session?.user) fetchOrders(session.user.id);
+      if (session?.user) {
+        fetchOrders(session.user.id);
+        fetchProfile(session.user.id);
+      }
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
-      if (session?.user) fetchOrders(session.user.id);
-      else setOrders([]);
+      if (session?.user) {
+        fetchOrders(session.user.id);
+        fetchProfile(session.user.id);
+      } else {
+        setOrders([]);
+        setProfile(null);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -579,73 +599,75 @@ const App: React.FC = () => {
             </div>
           );
         }
+        const points = profile?.points || 0;
+        const getLevel = (pts: number) => {
+          if (pts >= 600) return { name: 'Ouro', next: null, min: 600 };
+          if (pts >= 300) return { name: 'Prata', next: 'Ouro', min: 300, nextMin: 600 };
+          return { name: 'Bronze', next: 'Prata', min: 0, nextMin: 300 };
+        };
+        const level = getLevel(points);
+        const progress = level.nextMin ? ((points - level.min) / (level.nextMin - level.min)) * 100 : 100;
+
         return (
-          <div className="flex-1 bg-gradient-to-br from-emerald-900 via-emerald-800 to-orange-500">
-            <div className="max-w-7xl mx-auto px-6 py-20">
-              <div className="bg-white rounded-[60px] p-12 md:p-20 shadow-2xl border border-white/10 flex flex-col md:flex-row gap-12 items-center">
-                <div className="w-48 h-48 md:w-64 md:h-64 rounded-[50px] bg-gray-50 shrink-0 overflow-hidden shadow-2xl rotate-3">
-                  <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`} alt="Avatar" className="w-full h-full object-cover" />
-                </div>
-                <div className="flex-1">
-                  <span className="text-orange-500 font-black text-sm uppercase tracking-widest mb-4 block">Sua Conta</span>
-                  <h2 className="text-4xl md:text-5xl font-black text-emerald-950 mb-2">{user.email?.split('@')[0]}</h2>
-                  <p className="text-gray-400 font-bold mb-8">{user.email}</p>
+          <div className="flex-1 bg-white">
+            <div className="max-w-md mx-auto px-6 py-12 flex flex-col items-center">
+              {/* User Avatar & Info */}
+              <div className="w-32 h-32 rounded-full bg-orange-100 border-4 border-orange-50 mb-4 overflow-hidden shadow-lg">
+                <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`} alt="Avatar" className="w-full h-full object-cover" />
+              </div>
+              <h2 className="text-2xl font-black text-emerald-950 mb-1">{user.email?.split('@')[0]}</h2>
+              <p className="text-gray-400 font-bold mb-1">Nível {level.name}</p>
+              <p className="text-orange-600 font-black text-xl mb-8">{points} pontos</p>
 
-                  <div className="flex flex-wrap gap-4 mb-10">
-                    <div className="px-6 py-4 bg-gray-50 rounded-2xl border border-gray-100 flex-1 min-w-[150px]">
-                      <p className="text-emerald-900 font-black text-2xl">{orders.length}</p>
-                      <p className="text-gray-400 font-bold text-xs uppercase tracking-tighter">Pedidos Realizados</p>
-                    </div>
-                    <div className="px-6 py-4 bg-gray-50 rounded-2xl border border-gray-100 flex-1 min-w-[150px]">
-                      <p className="text-emerald-900 font-black text-2xl">{orders.length > 5 ? 'VIP' : 'Bronze'}</p>
-                      <p className="text-gray-400 font-bold text-xs uppercase tracking-tighter">Nível de Cliente</p>
-                    </div>
+              {/* Progress Bar */}
+              {level.next && (
+                <div className="w-full mb-10">
+                  <div className="flex justify-between items-end mb-2">
+                    <p className="font-bold text-emerald-950 text-sm">Próximo nível: {level.next}</p>
                   </div>
+                  <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-orange-500 transition-all duration-1000"
+                      style={{ width: `${Math.max(5, progress)}%` }}
+                    />
+                  </div>
+                  <p className="text-[10px] font-bold text-gray-400 mt-2 uppercase tracking-widest">
+                    Faltam {level.nextMin! - points} pontos
+                  </p>
+                </div>
+              )}
 
-                  {orders.length > 0 && (
-                    <div className="mb-10">
-                      <h3 className="text-xl font-bold text-emerald-950 mb-6">Histórico de Pedidos</h3>
-                      <div className="space-y-4">
-                        {orders.slice(0, 3).map((order) => (
-                          <div key={order.id} className="bg-gray-50 border border-gray-100 rounded-3xl p-5 flex items-center justify-between">
-                            <div>
-                              <p className="text-sm font-bold text-emerald-900">Pedido #{order.id.slice(0, 8)}</p>
-                              <p className="text-xs text-gray-400 font-medium">{new Date(order.created_at).toLocaleDateString('pt-BR')}</p>
-                              <div className="flex gap-1 mt-1">
-                                {order.order_items.map((item: any, idx: number) => (
-                                  <span key={idx} className="text-[10px] bg-white px-2 py-0.5 rounded-full border border-gray-100 font-bold text-gray-500">
-                                    {item.quantity}x {item.product_name}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <p className="font-black text-emerald-950">
-                                {Number(order.total_amount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                              </p>
-                              <span className="text-[10px] font-black uppercase tracking-widest text-orange-500">
-                                {order.status === 'pending' ? 'Pendente' : order.status}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
+              {/* Levels Grid */}
+              <div className="w-full space-y-4 mb-10">
+                {[
+                  { name: 'Bronze', range: '0 - 299 pontos', color: 'bg-orange-100' },
+                  { name: 'Prata', range: '300 - 599 pontos', color: 'bg-gray-100' },
+                  { name: 'Ouro', range: '600+ pontos', color: 'bg-yellow-100' }
+                ].map((l) => (
+                  <div key={l.name} className={`flex items-center justify-between p-4 rounded-3xl border transition-all ${level.name === l.name ? 'border-orange-500 bg-orange-50/30' : 'border-gray-50 bg-white'}`}>
+                    <div className="flex items-center gap-4">
+                      <div className={`w-12 h-12 rounded-2xl ${l.color} flex items-center justify-center font-black text-emerald-900`}>
+                        {l.name[0]}
+                      </div>
+                      <div>
+                        <p className={`font-black ${level.name === l.name ? 'text-emerald-950' : 'text-gray-400'}`}>{l.name}</p>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{l.range}</p>
                       </div>
                     </div>
-                  )}
-
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    <button className="bg-emerald-900 text-white px-8 py-4 rounded-2xl font-black shadow-lg hover:scale-105 transition-all">
-                      Meus Pedidos
-                    </button>
-                    <button
-                      onClick={() => supabase.auth.signOut()}
-                      className="bg-red-50 text-red-600 px-8 py-4 rounded-2xl font-black border border-red-100 hover:bg-red-100 transition-all"
-                    >
-                      Sair da Conta
-                    </button>
+                    {level.name === l.name && (
+                      <div className="bg-orange-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase">Atual</div>
+                    )}
                   </div>
-                </div>
+                ))}
               </div>
+
+              {/* Logout Button */}
+              <button
+                onClick={() => supabase.auth.signOut()}
+                className="w-full py-4 text-red-500 font-black text-sm uppercase tracking-widest hover:bg-red-50 rounded-2xl transition-colors"
+              >
+                Sair da Conta
+              </button>
             </div>
           </div>
         );
