@@ -24,7 +24,7 @@ const fetchProducts = async (): Promise<Product[]> => {
   }));
 };
 
-const saveOrderToSupabase = async (cart: CartItem[], total: number) => {
+const saveOrderToSupabase = async (cart: CartItem[], total: number, observation?: string) => {
   const { data: { session } } = await supabase.auth.getSession();
   const userId = session?.user?.id;
 
@@ -34,7 +34,8 @@ const saveOrderToSupabase = async (cart: CartItem[], total: number) => {
     .insert({
       user_id: userId,
       total_amount: total,
-      status: 'pending'
+      status: 'pending',
+      observation: observation
     })
     .select()
     .single();
@@ -66,9 +67,12 @@ const saveOrderToSupabase = async (cart: CartItem[], total: number) => {
 
 // Images mapping for sizes
 const SIZE_IMAGES: Record<string, string> = {
-  '250g': 'https://images.unsplash.com/photo-1623428187969-5da2dcea5ebf?auto=format&fit=crop&q=80&w=800',
-  '500g': 'https://images.unsplash.com/photo-1596506306797-400db32e6a14?auto=format&fit=crop&q=80&w=800',
-  '1kg': 'https://images.unsplash.com/photo-1536620948425-6393349c87ed?auto=format&fit=crop&q=80&w=800'
+  '250g': '/pote1.jpeg',
+  'Pote 250g': '/pote2.png',
+  '500g': '/castan1.jpeg',
+  '1kg': '/castan1.jpeg',
+  '2kg': '/castan1.jpeg',
+  '3kg': '/castan1.jpeg'
 };
 
 // --- Sub-components ---
@@ -79,13 +83,19 @@ const ProductModal: React.FC<{
   onAddToCart: (product: Product, quantity: number, size: string) => void;
 }> = ({ product, onClose, onAddToCart }) => {
   const [quantity, setQuantity] = useState(1);
-  const [selectedSize, setSelectedSize] = useState('500g');
+  const [selectedSize, setSelectedSize] = useState(product.availableSizes?.[0] || '500g');
 
   // Pricing logic
   const getPriceMultiplier = (size: string) => {
-    if (size === '250g') return 0.6;
-    if (size === '1kg') return 1.9;
-    return 1;
+    switch (size) {
+      case '250g':
+      case 'Pote 250g': return 0.6;
+      case '500g': return 1;
+      case '1kg': return 1.9;
+      case '2kg': return 3.6;
+      case '3kg': return 5.2;
+      default: return 1;
+    }
   };
   const currentPrice = product.price * getPriceMultiplier(selectedSize);
 
@@ -124,12 +134,12 @@ const ProductModal: React.FC<{
           {/* Size Selector */}
           <div className="mb-6">
             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Escolha o Peso</p>
-            <div className="flex gap-2">
-              {SIZES.map(size => (
+            <div className="flex flex-wrap gap-2">
+              {(product.availableSizes || SIZES).map(size => (
                 <button
                   key={size}
                   onClick={() => setSelectedSize(size)}
-                  className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all border ${selectedSize === size
+                  className={`flex-1 min-w-[80px] py-3 rounded-xl text-sm font-bold transition-all border ${selectedSize === size
                     ? 'bg-emerald-900 text-white border-emerald-900 shadow-lg shadow-emerald-900/20'
                     : 'bg-white text-gray-400 border-gray-100 hover:border-emerald-200'
                     }`}
@@ -180,46 +190,38 @@ const HomeView: React.FC<{
     <div className="relative flex-1 flex flex-col items-center justify-center px-6 md:px-12 pb-32 md:pb-0 overflow-y-auto no-scrollbar">
       <div className="max-w-7xl w-full mx-auto grid md:grid-cols-2 gap-12 items-center">
         <div className="flex flex-col items-center md:items-start text-center md:text-left relative z-10">
-          <div className={`md:hidden mx-auto w-64 h-64 rounded-full bg-emerald-700/50 p-2 border-4 border-white/10 mt-4 mb-8 overflow-hidden shadow-2xl transition-all duration-300 ${isTransitioning ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}>
-            <img
-              src={SIZE_IMAGES[selectedSize] || SIZE_IMAGES['500g']}
-              alt="Main Nuts"
-              className="w-full h-full object-cover rounded-full"
-            />
+          <div className="md:hidden relative w-full h-64 mt-4 mb-12 flex items-center justify-center">
+            <div className="absolute w-40 h-56 bg-orange-500/10 rounded-full blur-3xl"></div>
+
+            {/* Mobile Fan Item 1 */}
+            <div className={`absolute w-40 aspect-[3/4] rounded-[24px] bg-emerald-700/50 p-1.5 border border-white/10 overflow-hidden shadow-xl transition-all duration-700 -rotate-12 -translate-x-12 ${isTransitioning ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}>
+              <img src="/pote1.jpeg" alt="Side Product 1" className="w-full h-full object-cover rounded-[18px]" />
+            </div>
+
+            {/* Mobile Fan Item 2 (Main) */}
+            <div className={`absolute w-44 aspect-[3/4] rounded-[32px] bg-emerald-800 p-2 border-2 border-white/20 overflow-hidden shadow-2xl transition-all duration-500 z-10 ${isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
+              <img src={SIZE_IMAGES[selectedSize] || "/castan1.jpeg"} alt="Main Bio" className="w-full h-full object-cover rounded-[24px]" />
+            </div>
+
+            {/* Mobile Fan Item 3 */}
+            <div className={`absolute w-40 aspect-[3/4] rounded-[24px] bg-emerald-700/50 p-1.5 border border-white/10 overflow-hidden shadow-xl transition-all duration-700 rotate-12 translate-x-12 ${isTransitioning ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}>
+              <img src="/pote2.png" alt="Side Product 2" className="w-full h-full object-cover rounded-[18px]" />
+            </div>
           </div>
           <div className="absolute -top-20 -left-10 opacity-5 hidden lg:block pointer-events-none select-none">
-            <h1 className="text-[180px] font-black tracking-tighter text-white">NUTS</h1>
+            <h1 className="text-[135px] font-black tracking-tighter text-white">CASTANHAS</h1>
           </div>
           <span className="bg-orange-500 text-white text-[10px] font-black uppercase tracking-[3px] px-4 py-1.5 rounded-full mb-6 shadow-lg shadow-orange-500/20">
-            Premium & Natural
+            Olá, Seja bem vindo
           </span>
           <h2 className="text-5xl md:text-7xl lg:text-8xl font-black text-white mb-6 leading-[0.9]">
-            Sabor <br className="hidden md:block" /> <span className="text-orange-500">Puro.</span>
+            Puro <br className="hidden md:block" /> <span className="text-orange-500"> sabor.</span>
           </h2>
           <p className="text-white/70 text-base md:text-lg max-w-md leading-relaxed mb-10">
-            Cultivadas com carinho, nossas castanhas trazem a energia da natureza direto para o seu dia. Um momento de prazer crocante em cada punhado.
+            Cultivadas com carinho, nossas castanhas trazem a energia da natureza direto para o seu dia.
           </p>
-          <div className="w-full max-w-xs md:max-w-sm mb-10">
-            <div className="flex items-center gap-4 mb-4">
-              <span className="text-[10px] font-bold text-white/40 tracking-[2px] uppercase whitespace-nowrap">Escolha seu kit</span>
-              <div className="h-[1px] bg-white/10 flex-1"></div>
-            </div>
-            <div className="flex items-center justify-center md:justify-start gap-4">
-              {SIZES.map((size) => (
-                <button
-                  key={size}
-                  onClick={() => onSizeChange(size)}
-                  className={`w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center text-xs font-black transition-all border-2 ${selectedSize === size
-                    ? 'bg-white text-emerald-900 border-white scale-110 shadow-xl shadow-white/10'
-                    : 'bg-transparent text-white border-white/20 hover:border-white/50'
-                    }`}
-                >
-                  {size}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+
+          <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 w-full sm:w-auto mt-4">
             <button
               onClick={onOrderNow}
               className="w-full sm:w-auto bg-white text-emerald-900 px-10 py-5 rounded-2xl font-black flex items-center justify-center gap-2 shadow-xl hover:scale-105 transition-all active:scale-95 text-lg"
@@ -234,18 +236,42 @@ const HomeView: React.FC<{
             </button>
           </div>
         </div>
-        <div className="hidden md:flex justify-center items-center relative">
-          <div className="absolute w-[120%] h-[120%] bg-white/5 rounded-full blur-3xl"></div>
-          <div className={`relative w-full aspect-square max-w-lg rounded-[60px] bg-emerald-700/50 p-4 border border-white/10 overflow-hidden shadow-2xl transition-all duration-500 rotate-3 group hover:rotate-0 ${isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
-            <img
-              src={SIZE_IMAGES[selectedSize] || SIZE_IMAGES['500g']}
-              alt={`Premium Nuts ${selectedSize}`}
-              className="w-full h-full object-cover rounded-[50px] group-hover:scale-110 transition-transform duration-1000"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-emerald-900/60 to-transparent"></div>
-            <div className="absolute bottom-10 left-10 text-white">
-              <p className="text-white/60 text-xs font-bold uppercase tracking-widest mb-1">Pacote {selectedSize}</p>
-              <p className="text-2xl font-black">Qualidade Garantida</p>
+        <div className="hidden md:flex justify-center items-center relative h-[600px] w-full">
+          <div className="absolute w-[80%] h-[80%] bg-orange-500/10 rounded-full blur-3xl"></div>
+
+          <div className="relative w-full max-w-lg h-full flex items-center justify-center">
+            {/* Image 1 (Left) */}
+            <div className={`absolute w-64 aspect-[3/4] rounded-[32px] bg-emerald-700/50 p-2 border border-white/10 overflow-hidden shadow-2xl transition-all duration-700 -rotate-12 -translate-x-32 hover:rotate-[-15deg] hover:-translate-y-4 z-10 ${isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
+              <img
+                src="/pote1.jpeg"
+                alt="Product 1"
+                className="w-full h-full object-cover rounded-[24px]"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/40 to-transparent"></div>
+            </div>
+
+            {/* Image 2 (Center - Main) */}
+            <div className={`absolute w-72 aspect-[3/4] rounded-[40px] bg-emerald-800 p-3 border-2 border-white/20 overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] transition-all duration-500 z-30 hover:scale-105 ${isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
+              <img
+                src={SIZE_IMAGES[selectedSize] || "/castan1.jpeg"}
+                alt="Main Product"
+                className="w-full h-full object-cover rounded-[32px]"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/60 via-transparent to-transparent"></div>
+              <div className="absolute bottom-8 left-8 text-white">
+                <p className="text-xl font-black">Sabor Original</p>
+                <p className="text-white/60 text-[10px] font-bold uppercase tracking-widest">Premium quality</p>
+              </div>
+            </div>
+
+            {/* Image 3 (Right) */}
+            <div className={`absolute w-64 aspect-[3/4] rounded-[32px] bg-emerald-700/50 p-2 border border-white/10 overflow-hidden shadow-2xl transition-all duration-700 rotate-12 translate-x-32 hover:rotate-[15deg] hover:-translate-y-4 z-20 ${isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
+              <img
+                src="/pote2.png"
+                alt="Product 3"
+                className="w-full h-full object-cover rounded-[24px]"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/40 to-transparent"></div>
             </div>
           </div>
         </div>
@@ -260,37 +286,47 @@ const ProductsView: React.FC<{
   cart: CartItem[];
 }> = ({ products, onProductClick, cart }) => (
   <div className="flex-1 bg-gradient-to-br from-emerald-900 via-emerald-800 to-orange-500 rounded-t-[40px] md:rounded-none">
-    <div className="max-w-7xl mx-auto px-6 py-12 pb-32">
-      <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">
+    <div className="max-w-7xl mx-auto px-6 py-12 pb-32 flex flex-col items-center">
+      <div className="flex flex-col items-center text-center mb-12 gap-4">
         <div>
           <span className="text-orange-300 font-black text-xs uppercase tracking-widest mb-2 block">Catálogo</span>
           <h2 className="text-4xl md:text-5xl font-black text-white">Seleção Especial</h2>
         </div>
-        <p className="text-emerald-100 font-medium max-w-xs">Escolha o melhor da natureza para o seu bem-estar diário.</p>
+        <p className="text-emerald-100 font-medium max-w-md">Escolha o melhor da natureza para o seu bem-estar diário.</p>
       </div>
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-8">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-8 w-full justify-items-center">
         {products.map((product) => {
           const inCart = cart.find(item => item.id === product.id);
           return (
             <div
               key={product.id}
               onClick={() => onProductClick(product)}
-              className="group bg-white rounded-[40px] p-4 border border-white/10 flex flex-col h-full shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-2 cursor-pointer"
+              className="group bg-white rounded-[40px] p-4 border border-white/10 flex flex-col h-full shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-2 cursor-pointer w-full"
             >
               <div className="aspect-square rounded-[32px] overflow-hidden mb-5 bg-gray-50 relative">
                 <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                 <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-black text-emerald-950 uppercase shadow-sm">Premium</div>
               </div>
-              <div className="px-2 pb-2 flex-1 flex flex-col">
-                <h3 className="font-bold text-lg text-emerald-950 mb-2 leading-tight group-hover:text-orange-600 transition-colors">{product.name}</h3>
-                <div className="mt-auto">
-                  <p className="text-gray-400 text-xs font-medium mb-3 line-clamp-2">{product.description}</p>
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-emerald-900 font-black text-xl">{product.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+              <div className="px-2 pb-2 flex-1 flex flex-col items-center text-center">
+                <h3 className="font-bold text-lg text-emerald-950 mb-2 leading-tight group-hover:text-orange-600 transition-colors uppercase tracking-tight">{product.name}</h3>
+                <div className="mt-auto w-full flex flex-col items-center">
+                  <p className="text-gray-400 text-xs font-medium mb-5 line-clamp-2">{product.description}</p>
+                  <div className="flex flex-col items-center w-full gap-4">
+                    <p className="text-emerald-900 font-black text-2xl">{product.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
                     <button
-                      className={`w-12 h-12 rounded-2xl transition-all active:scale-90 flex items-center justify-center shadow-lg ${inCart ? 'bg-orange-500 text-white' : 'bg-emerald-900 text-white hover:bg-emerald-800'}`}
+                      className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all active:scale-95 shadow-lg ${inCart ? 'bg-orange-500 text-white shadow-orange-500/20' : 'bg-emerald-900 text-white hover:bg-emerald-800 shadow-emerald-900/20'}`}
                     >
-                      {inCart ? <ShoppingBasket className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
+                      {inCart ? (
+                        <>
+                          <ShoppingBasket className="w-5 h-5" />
+                          <span className="text-sm">No Carrinho</span>
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-5 h-5" />
+                          <span className="text-sm">Adicionar</span>
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -416,6 +452,8 @@ const CartView: React.FC<{
             </div>
           </div>
         ))}
+
+
 
         {/* Summary Card */}
         <div className="bg-white rounded-[30px] p-6 shadow-xl border border-gray-100 mt-6">

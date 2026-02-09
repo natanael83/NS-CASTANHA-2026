@@ -7,6 +7,7 @@ export interface Product {
   description?: string;
   imagePath?: string; // Caminho no Storage
   benefits?: string[];
+  availableSizes?: string[];
 }
 
 export interface CartItem extends Product {
