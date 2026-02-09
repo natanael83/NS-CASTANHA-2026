@@ -351,15 +351,26 @@ const CartView: React.FC<{
   const total = subtotal + SHIPPING_COST;
 
   const handleCheckout = async () => {
+    if (!supabase.auth.getSession()) {
+      alert("Por favor, faça login para acumular pontos em sua compra!");
+    }
+
     setIsSubmitting(true);
 
-    await saveOrderToSupabase(cart, total);
+    try {
+      const orderId = await saveOrderToSupabase(cart, total);
 
-    const text = `Olá! Gostaria de finalizar meu pedido:\n\n${cart.map(i => `*${i.quantity}x ${i.name}* (${i.selectedSize})`).join('\n')}\n\nSubtotal: ${subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}\nFrete: ${SHIPPING_COST.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}\n*Total: ${total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}*`;
+      const text = `Olá! Acabei de fazer um pedido no site (ID: #${orderId?.slice(0, 8)}):\n\n${cart.map(i => `*${i.quantity}x ${i.name}* (${i.selectedSize})`).join('\n')}\n\nSubtotal: ${subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}\nFrete: ${SHIPPING_COST.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}\n*Total: ${total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}*`;
 
-    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`, '_blank');
-
-    setIsSubmitting(false);
+      window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`, '_blank');
+    } catch (error) {
+      console.error("Erro ao processar pedido:", error);
+      alert("Houve um erro ao salvar seu pedido, mas você ainda pode finalizar pelo WhatsApp.");
+      const text = `Olá! Gostaria de fazer um pedido:\n\n${cart.map(i => `*${i.quantity}x ${i.name}* (${i.selectedSize})`).join('\n')}\n\n*Total estimado: ${total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}*`;
+      window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`, '_blank');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (cart.length === 0) {
@@ -527,30 +538,54 @@ const App: React.FC = () => {
   const [orders, setOrders] = useState<any[]>([]);
   const [allOrders, setAllOrders] = useState<any[]>([]); // For Admin
   const [profile, setProfile] = useState<{ points: number; full_name?: string } | null>(null);
+  const [adminFilter, setAdminFilter] = useState<'today' | 'week' | 'month' | 'all'>('all');
+
 
   const isAdmin = user?.email === 'natanaelsouza28@gmail.com'; // E-mail de admin atualizado
 
   const fetchAllOrders = async () => {
+    // Tenta buscar com o nome do perfil, mas se falhar, busca apenas os pedidos
     const { data, error } = await supabase
       .from('orders')
       .select('*, order_items(*), profiles(full_name)')
       .order('created_at', { ascending: false });
 
-    if (error) console.error("Error fetching all orders:", error);
-    else setAllOrders(data || []);
+    if (error) {
+      console.error("Erro ao buscar pedidos com perfis:", error);
+      // Fallback: busca sem o join do perfil para garantir que a lista apareça
+      const { data: simpleData, error: simpleError } = await supabase
+        .from('orders')
+        .select('*, order_items(*)')
+        .order('created_at', { ascending: false });
+
+      if (!simpleError) setAllOrders(simpleData || []);
+    } else {
+      setAllOrders(data || []);
+    }
   };
 
-  const confirmOrder = async (orderId: string) => {
+  const confirmOrder = async (orderId: string, customerId?: string) => {
     const { error } = await supabase
       .from('orders')
       .update({ status: 'confirmed' })
       .eq('id', orderId);
 
-    if (error) alert("Erro ao confirmar: " + error.message);
-    else {
-      alert("Pedido confirmado! Pontos adicionados ao cliente.");
+    if (error) {
+      alert("Erro ao confirmar: " + error.message);
+    } else {
+      alert("Pedido confirmado com sucesso! Os pontos foram creditados ao cliente.");
+
+      // Refresh all relevant data
       if (isAdmin) fetchAllOrders();
-      if (user) fetchOrders(user.id);
+      if (user) {
+        fetchOrders(user.id);
+        fetchProfile(user.id);
+      }
+      // If we are confirming an order for another user, their points are handled by DB trigger,
+      // but if they were the current user (e.g. testing), this ensures UI updates.
+      if (customerId && customerId === user?.id) {
+        fetchProfile(customerId);
+      }
     }
   };
 
@@ -678,109 +713,200 @@ const App: React.FC = () => {
 
         return (
           <div className="flex-1 bg-white">
-            <div className="max-w-md mx-auto px-6 py-12 flex flex-col items-center">
-              {/* User Avatar & Info */}
-              <div className="w-32 h-32 rounded-full bg-orange-100 border-4 border-orange-50 mb-4 overflow-hidden shadow-lg">
-                <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`} alt="Avatar" className="w-full h-full object-cover" />
-              </div>
-              <h2 className="text-2xl font-black text-emerald-950 mb-1">{user.email?.split('@')[0]}</h2>
-              <p className="text-gray-400 font-bold mb-1">Nível {level.name}</p>
-              <p className="text-orange-600 font-black text-xl mb-8">{points} pontos</p>
+            <div className="max-w-7xl mx-auto px-6 py-12">
+              <div className={`grid grid-cols-1 ${isAdmin ? 'lg:grid-cols-[1fr,480px]' : 'max-w-md mx-auto'} gap-12 items-start`}>
 
-              {/* Progress Bar */}
-              {level.next && (
-                <div className="w-full mb-10">
-                  <div className="flex justify-between items-end mb-2">
-                    <p className="font-bold text-emerald-950 text-sm">Próximo nível: {level.next}</p>
+                {/* LADO ESQUERDO: Perfil do Usuário e Meus Pedidos */}
+                <div className="flex flex-col items-center border-b lg:border-b-0 lg:border-r border-gray-100 pb-12 lg:pb-0 lg:pr-12">
+                  <div className="w-32 h-32 rounded-full bg-orange-100 border-4 border-orange-50 mb-4 overflow-hidden shadow-lg">
+                    <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`} alt="Avatar" className="w-full h-full object-cover" />
                   </div>
-                  <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-orange-500 transition-all duration-1000"
-                      style={{ width: `${Math.max(5, progress)}%` }}
-                    />
-                  </div>
-                  <p className="text-[10px] font-bold text-gray-400 mt-2 uppercase tracking-widest">
-                    Faltam {level.nextMin! - points} pontos
-                  </p>
-                </div>
-              )}
+                  <h2 className="text-2xl font-black text-emerald-950 mb-1">{user.email?.split('@')[0]}</h2>
+                  <p className="text-gray-400 font-bold mb-1">Nível {level.name}</p>
+                  <p className="text-orange-600 font-black text-xl mb-8">{points} pontos</p>
 
-              {/* Levels Grid */}
-              <div className="w-full space-y-4 mb-10">
-                {[
-                  { name: 'Bronze', range: '0 - 299 pontos', color: 'bg-orange-100' },
-                  { name: 'Prata', range: '300 - 599 pontos', color: 'bg-gray-100' },
-                  { name: 'Ouro', range: '600+ pontos', color: 'bg-yellow-100' }
-                ].map((l) => (
-                  <div key={l.name} className={`flex items-center justify-between p-4 rounded-3xl border transition-all ${level.name === l.name ? 'border-orange-500 bg-orange-50/30' : 'border-gray-50 bg-white'}`}>
-                    <div className="flex items-center gap-4">
-                      <div className={`w-12 h-12 rounded-2xl ${l.color} flex items-center justify-center font-black text-emerald-900`}>
-                        {l.name[0]}
+                  {/* Progress Bar */}
+                  {level.next && (
+                    <div className="w-full mb-10 max-w-sm">
+                      <div className="flex justify-between items-end mb-2">
+                        <p className="font-bold text-emerald-950 text-sm">Próximo nível: {level.next}</p>
                       </div>
-                      <div>
-                        <p className={`font-black ${level.name === l.name ? 'text-emerald-950' : 'text-gray-400'}`}>{l.name}</p>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{l.range}</p>
+                      <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-orange-500 transition-all duration-1000"
+                          style={{ width: `${Math.max(5, progress)}%` }}
+                        />
                       </div>
+                      <p className="text-[10px] font-bold text-gray-400 mt-2 uppercase tracking-widest text-center">
+                        Faltam {level.nextMin! - points} pontos
+                      </p>
                     </div>
-                    {level.name === l.name && (
-                      <div className="bg-orange-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase">Atual</div>
-                    )}
+                  )}
+
+                  {/* Levels Grid */}
+                  <div className="w-full space-y-4 mb-10 max-w-sm">
+                    {[
+                      { name: 'Bronze', range: '0 - 299 pontos', color: 'bg-orange-100' },
+                      { name: 'Prata', range: '300 - 599 pontos', color: 'bg-gray-100' },
+                      { name: 'Ouro', range: '600+ pontos', color: 'bg-yellow-100' }
+                    ].map((l) => (
+                      <div key={l.name} className={`flex items-center justify-between p-4 rounded-3xl border transition-all ${level.name === l.name ? 'border-orange-500 bg-orange-50/30' : 'border-gray-50 bg-white'}`}>
+                        <div className="flex items-center gap-4">
+                          <div className={`w-12 h-12 rounded-2xl ${l.color} flex items-center justify-center font-black text-emerald-900`}>
+                            {l.name[0]}
+                          </div>
+                          <div>
+                            <p className={`font-black ${level.name === l.name ? 'text-emerald-950' : 'text-gray-400'}`}>{l.name}</p>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{l.range}</p>
+                          </div>
+                        </div>
+                        {level.name === l.name && (
+                          <div className="bg-orange-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase">Atual</div>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
 
-              {/* Logout Button */}
-              <button
-                onClick={() => supabase.auth.signOut()}
-                className="w-full py-4 text-red-500 font-black text-sm uppercase tracking-widest hover:bg-red-50 rounded-2xl transition-colors mb-8"
-              >
-                Sair da Conta
-              </button>
-
-              {/* Admin Section */}
-              {isAdmin && (
-                <div className="w-full border-t border-gray-100 pt-10">
-                  <div className="bg-emerald-950 rounded-[40px] p-8 text-white">
-                    <h3 className="text-xl font-black mb-6">Painel Administrativo</h3>
-                    <p className="text-emerald-100/60 text-xs font-bold uppercase tracking-widest mb-6">Pedidos para Confirmar</p>
+                  {/* My Orders Section */}
+                  <div className="w-full mb-10 max-w-sm">
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-xl font-black text-emerald-950">Meus Pedidos</h3>
+                      <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-1 rounded-md uppercase tracking-tighter">
+                        {orders.length} pedidos
+                      </span>
+                    </div>
 
                     <div className="space-y-4">
-                      {allOrders.filter(o => o.status === 'pending').map((order) => (
-                        <div key={order.id} className="bg-white/5 border border-white/10 rounded-3xl p-5">
-                          <div className="flex justify-between items-start mb-4">
+                      {orders.map((order) => (
+                        <div key={order.id} className="bg-gray-50 rounded-3xl p-5 border border-gray-100">
+                          <div className="flex justify-between items-start mb-3">
                             <div>
-                              <p className="text-sm font-bold">Cliente: {order.profiles?.full_name || 'Usuário'}</p>
-                              <p className="text-[10px] text-white/40 uppercase tracking-tighter">ID: #{order.id.slice(0, 8)}</p>
+                              <p className="text-xs font-bold text-gray-400 uppercase">#{order.id.slice(0, 8)}</p>
+                              <p className="text-sm font-black text-emerald-950">
+                                {new Date(order.created_at).toLocaleDateString('pt-BR')}
+                              </p>
                             </div>
-                            <p className="font-black text-orange-500">
+                            <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase ${order.status === 'confirmed'
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-orange-100 text-orange-700'
+                              }`}>
+                              {order.status === 'confirmed' ? 'Confirmado' : 'Pendente'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <p className="text-lg font-black text-emerald-900">
                               {Number(order.total_amount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                             </p>
+                            {order.status === 'confirmed' && (
+                              <p className="text-xs font-bold text-orange-600">+{Math.floor(order.total_amount)} pontos</p>
+                            )}
                           </div>
-
-                          <div className="flex gap-2 mb-4 overflow-x-auto pb-2 no-scrollbar">
-                            {order.order_items?.map((item: any, idx: number) => (
-                              <span key={idx} className="text-[10px] bg-white/10 px-2 py-1 rounded-full whitespace-nowrap">
-                                {item.quantity}x {item.product_name}
-                              </span>
-                            ))}
-                          </div>
-
-                          <button
-                            onClick={() => confirmOrder(order.id)}
-                            className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-lg active:scale-95"
-                          >
-                            Confirmar Pagamento & Dar Pontos
-                          </button>
                         </div>
                       ))}
-
-                      {allOrders.filter(o => o.status === 'pending').length === 0 && (
-                        <p className="text-center text-emerald-100/40 text-sm py-4">Nenhum pedido pendente.</p>
+                      {orders.length === 0 && (
+                        <div className="text-center py-8 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+                          <p className="text-gray-400 text-sm font-medium">Você ainda não fez nenhum pedido.</p>
+                        </div>
                       )}
                     </div>
                   </div>
+
+                  <button
+                    onClick={() => supabase.auth.signOut()}
+                    className="w-full max-w-sm py-4 text-red-500 font-black text-sm uppercase tracking-widest hover:bg-red-50 rounded-2xl transition-colors"
+                  >
+                    Sair da Conta
+                  </button>
                 </div>
-              )}
+
+                {/* LADO DIREITO: Painel Administrativo */}
+                {isAdmin && (
+                  <div className="lg:sticky lg:top-24">
+                    <div className="bg-emerald-950 rounded-[40px] p-6 md:p-8 text-white shadow-2xl">
+                      <div className="flex flex-col gap-4 mb-8">
+                        <div>
+                          <h3 className="text-xl font-black mb-1">Painel Administrativo</h3>
+                          <p className="text-emerald-100/60 text-[10px] font-bold uppercase tracking-widest">Controle de Vendas</p>
+                        </div>
+
+                        <div className="flex bg-white/5 p-1 rounded-2xl border border-white/10 overflow-x-auto no-scrollbar">
+                          {[
+                            { id: 'today', label: 'Hoje' },
+                            { id: 'week', label: 'Semana' },
+                            { id: 'month', label: 'Mês' },
+                            { id: 'all', label: 'Todos' }
+                          ].map((filter) => (
+                            <button
+                              key={filter.id}
+                              onClick={() => setAdminFilter(filter.id as any)}
+                              className={`flex-1 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap ${adminFilter === filter.id
+                                ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20'
+                                : 'text-white/40 hover:text-white'
+                                }`}
+                            >
+                              {filter.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <p className="text-emerald-100/60 text-xs font-bold uppercase tracking-widest mb-6 px-1">Pedidos para Confirmar</p>
+
+                      <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                        {allOrders
+                          .filter(o => o.status === 'pending')
+                          .filter(o => {
+                            if (adminFilter === 'all') return true;
+                            const orderDate = new Date(o.created_at);
+                            const now = new Date();
+                            const diffTime = Math.abs(now.getTime() - orderDate.getTime());
+                            const diffDays = diffTime / (1000 * 60 * 60 * 24);
+
+                            if (adminFilter === 'today') return diffDays < 1 && now.getDate() === orderDate.getDate();
+                            if (adminFilter === 'week') return diffDays <= 7;
+                            if (adminFilter === 'month') return diffDays <= 30;
+                            return true;
+                          })
+                          .map((order) => (
+                            <div key={order.id} className="bg-white/5 border border-white/10 rounded-3xl p-5 hover:bg-white/[0.08] transition-colors">
+                              <div className="flex justify-between items-start mb-4">
+                                <div>
+                                  <p className="text-sm font-bold truncate max-w-[150px]">Cliente: {order.profiles?.full_name || 'Usuário'}</p>
+                                  <p className="text-[10px] text-white/40 uppercase tracking-tighter">ID: #{order.id.slice(0, 8)}</p>
+                                </div>
+                                <p className="font-black text-orange-500 whitespace-nowrap">
+                                  {Number(order.total_amount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                </p>
+                              </div>
+
+                              <div className="flex gap-2 mb-4 overflow-x-auto pb-2 no-scrollbar">
+                                {order.order_items?.map((item: any, idx: number) => (
+                                  <span key={idx} className="text-[10px] bg-white/10 px-2 py-1 rounded-full whitespace-nowrap">
+                                    {item.quantity}x {item.product_name}
+                                  </span>
+                                ))}
+                              </div>
+
+                              <button
+                                onClick={() => confirmOrder(order.id, order.user_id)}
+                                className="w-full bg-orange-500 hover:bg-orange-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-[2px] transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2"
+                              >
+                                <Check className="w-4 h-4" />
+                                Confirmar
+                              </button>
+                            </div>
+                          ))}
+
+                        {allOrders.filter(o => o.status === 'pending').length === 0 && (
+                          <p className="text-center text-emerald-100/40 text-sm py-8 bg-white/5 rounded-3xl border border-dashed border-white/10">
+                            Nenhum pedido pendente.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         );
