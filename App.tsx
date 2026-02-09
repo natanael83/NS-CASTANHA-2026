@@ -97,7 +97,10 @@ const ProductModal: React.FC<{
       default: return 1;
     }
   };
-  const currentPrice = product.price * getPriceMultiplier(selectedSize);
+  // Preço baseado no primeiro tamanho disponível como base
+  const baseMultiplier = getPriceMultiplier(product.availableSizes?.[0] || '500g');
+  const currentMultiplier = getPriceMultiplier(selectedSize);
+  const currentPrice = (product.price / baseMultiplier) * currentMultiplier;
 
   // Close on escape key
   useEffect(() => {
@@ -346,9 +349,8 @@ const CartView: React.FC<{
   onGoBack: () => void;
 }> = ({ cart, onUpdateQty, onRemove, onGoBack }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const SHIPPING_COST = 15.00;
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
-  const total = subtotal + SHIPPING_COST;
+  const total = subtotal;
 
   const handleCheckout = async () => {
     if (!supabase.auth.getSession()) {
@@ -360,7 +362,7 @@ const CartView: React.FC<{
     try {
       const orderId = await saveOrderToSupabase(cart, total);
 
-      const text = `Olá! Acabei de fazer um pedido no site (ID: #${orderId?.slice(0, 8)}):\n\n${cart.map(i => `*${i.quantity}x ${i.name}* (${i.selectedSize})`).join('\n')}\n\nSubtotal: ${subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}\nFrete: ${SHIPPING_COST.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}\n*Total: ${total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}*`;
+      const text = `Olá! Acabei de fazer um pedido no site (ID: #${orderId?.slice(0, 8)}):\n\n${cart.map(i => `*${i.quantity}x ${i.name}* (${i.selectedSize})`).join('\n')}\n\nSubtotal: ${subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}\n*Total: ${total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}*`;
 
       window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`, '_blank');
     } catch (error) {
@@ -474,10 +476,6 @@ const CartView: React.FC<{
             <div className="flex justify-between items-center text-gray-500 text-sm font-medium">
               <span>Subtotal ({cart.length} itens)</span>
               <span className="text-gray-900">{subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
-            </div>
-            <div className="flex justify-between items-center text-gray-500 text-sm font-medium">
-              <span>Frete</span>
-              <span className="text-gray-900">{SHIPPING_COST.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
             </div>
           </div>
 
