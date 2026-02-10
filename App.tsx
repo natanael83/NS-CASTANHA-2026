@@ -89,11 +89,11 @@ const ProductModal: React.FC<{
   const getPriceMultiplier = (size: string) => {
     switch (size) {
       case '250g':
-      case 'Pote 250g': return 0.6;
+      case 'Pote 250g': return 0.5; // Base 500g = 1.0, então 250g = 0.5
       case '500g': return 1;
-      case '1kg': return 1.9;
-      case '2kg': return 3.6;
-      case '3kg': return 5.2;
+      case '1kg': return 2;
+      case '2kg': return 4;
+      case '3kg': return 6;
       default: return 1;
     }
   };
@@ -312,10 +312,22 @@ const ProductsView: React.FC<{
               </div>
               <div className="px-2 pb-2 flex-1 flex flex-col items-center text-center">
                 <h3 className="font-bold text-lg text-emerald-950 mb-2 leading-tight group-hover:text-orange-600 transition-colors uppercase tracking-tight">{product.name}</h3>
-                <div className="mt-auto w-full flex flex-col items-center">
-                  <p className="text-gray-400 text-xs font-medium mb-5 line-clamp-2">{product.description}</p>
-                  <div className="flex flex-col items-center w-full gap-4">
-                    <p className="text-emerald-900 font-black text-2xl">{product.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                <div className="flex-1 w-full flex flex-col items-center">
+                  <p className="text-gray-500 text-xs font-medium mb-4 line-clamp-3">{product.description}</p>
+
+                  {/* Benefits List */}
+                  {product.benefits && (
+                    <div className="w-full space-y-2 mb-6 text-left">
+                      {product.benefits.slice(0, 2).map((benefit, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-orange-500 shrink-0" />
+                          <span className="text-[10px] font-bold text-emerald-900 leading-tight">{benefit}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="mt-auto w-full flex flex-col items-center gap-4">
                     <button
                       className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all active:scale-95 shadow-lg ${inCart ? 'bg-orange-500 text-white shadow-orange-500/20' : 'bg-emerald-900 text-white hover:bg-emerald-800 shadow-emerald-900/20'}`}
                     >
