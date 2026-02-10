@@ -26,7 +26,7 @@ export const FALLBACK_PRODUCTS: Product[] = [
     id: '2',
     name: 'Castanha-do-Pará granulada',
     price: 15.00,
-    image: '/pote2.png',
+    image: '/granulada.png',
     description: 'Castanha granulada em pote, ideal para acompanhamentos e receitas.',
     availableSizes: ['Pote 250g'],
     benefits: [
