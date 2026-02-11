@@ -22,9 +22,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentView, onViewChange 
         <button
           key={item.view}
           onClick={() => onViewChange(item.view)}
-          className={`flex flex-col items-center gap-1 transition-all active:scale-90 ${
-            currentView === item.view ? 'text-emerald-700' : 'text-gray-400'
-          }`}
+          className={`flex flex-col items-center gap-1 transition-all active:scale-90 ${currentView === item.view ? 'text-emerald-700' : 'text-gray-400'
+            }`}
         >
           <item.icon className={`w-6 h-6 ${currentView === item.view ? 'fill-emerald-700/10' : ''}`} />
           <span className="text-[10px] font-semibold">{item.label}</span>
