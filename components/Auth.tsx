@@ -78,6 +78,10 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
                             onChange={(e) => setEmail(e.target.value)}
                             className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-orange-500/50 transition-all font-medium"
                             required
+                            autoComplete="off"
+                            autoCorrect="off"
+                            autoCapitalize="off"
+                            spellCheck="false"
                         />
                     </div>
 
@@ -90,6 +94,10 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
                             onChange={(e) => setPassword(e.target.value)}
                             className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-orange-500/50 transition-all font-medium"
                             required
+                            autoComplete="new-password"
+                            autoCorrect="off"
+                            autoCapitalize="off"
+                            spellCheck="false"
                         />
                     </div>
 
