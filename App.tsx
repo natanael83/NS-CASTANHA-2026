@@ -304,11 +304,11 @@ const ProductsView: React.FC<{
             <div
               key={product.id}
               onClick={() => onProductClick(product)}
-              className="group bg-white rounded-[40px] p-4 border border-white/10 flex flex-col h-full shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-2 cursor-pointer w-full"
+              className="group bg-white rounded-[32px] sm:rounded-[40px] p-3 sm:p-4 border border-white/10 flex flex-col h-full shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-2 cursor-pointer w-full"
             >
-              <div className="aspect-square rounded-[32px] overflow-hidden mb-5 bg-gray-50 relative">
+              <div className="aspect-square rounded-[24px] sm:rounded-[32px] overflow-hidden mb-4 sm:mb-5 bg-gray-50 relative">
                 <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-black text-emerald-950 uppercase shadow-sm">Premium</div>
+                <div className="absolute top-3 right-3 sm:top-4 sm:right-4 bg-white/90 backdrop-blur px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[9px] sm:text-[10px] font-black text-emerald-950 uppercase shadow-sm">Premium</div>
               </div>
               <div className="px-2 pb-2 flex-1 flex flex-col items-center text-center">
                 <h3 className="font-bold text-lg text-emerald-950 mb-2 leading-tight group-hover:text-orange-600 transition-colors uppercase tracking-tight">{product.name}</h3>
@@ -329,17 +329,17 @@ const ProductsView: React.FC<{
 
                   <div className="mt-auto w-full flex flex-col items-center gap-4">
                     <button
-                      className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all active:scale-95 shadow-lg ${inCart ? 'bg-orange-500 text-white shadow-orange-500/20' : 'bg-emerald-900 text-white hover:bg-emerald-800 shadow-emerald-900/20'}`}
+                      className={`w-full py-3.5 sm:py-4 rounded-xl sm:rounded-2xl font-bold flex items-center justify-center gap-2 sm:gap-3 transition-all active:scale-95 shadow-lg ${inCart ? 'bg-orange-500 text-white shadow-orange-500/20' : 'bg-emerald-900 text-white hover:bg-emerald-800 shadow-emerald-900/20'}`}
                     >
                       {inCart ? (
                         <>
-                          <ShoppingBasket className="w-5 h-5" />
-                          <span className="text-sm">No Carrinho</span>
+                          <ShoppingBasket className="w-4 h-4 sm:w-5 sm:h-5" />
+                          <span className="text-xs sm:text-sm">No Carrinho</span>
                         </>
                       ) : (
                         <>
-                          <Plus className="w-5 h-5" />
-                          <span className="text-sm">Adicionar</span>
+                          <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+                          <span className="text-xs sm:text-sm">Adicionar</span>
                         </>
                       )}
                     </button>
