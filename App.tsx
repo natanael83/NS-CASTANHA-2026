@@ -182,6 +182,40 @@ const HomeView: React.FC<{
   onSizeChange: (size: string) => void;
 }> = ({ onOrderNow, selectedSize, onSizeChange }) => {
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+
+  const images = [
+    { size: '250g', src: '/pote1.jpeg', label: 'Pote Tradicional' },
+    { size: '500g', src: '/castan1.jpeg', label: 'Sabor Original' },
+    { size: 'Pote 250g', src: '/pote2.png', label: 'Crocância Pura' }
+  ];
+
+  const currentIndex = images.findIndex(img => img.size === selectedSize);
+  const safeIndex = currentIndex === -1 ? 1 : currentIndex;
+
+  const handleNext = () => {
+    const nextIndex = (safeIndex + 1) % images.length;
+    onSizeChange(images[nextIndex].size);
+  };
+
+  const handlePrev = () => {
+    const prevIndex = (safeIndex - 1 + images.length) % images.length;
+    onSizeChange(images[prevIndex].size);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStart === null) return;
+    const touchEnd = e.changedTouches[0].clientX;
+    const diff = touchStart - touchEnd;
+
+    if (diff > 50) handleNext(); // Swipe left
+    if (diff < -50) handlePrev(); // Swipe right
+    setTouchStart(null);
+  };
 
   useEffect(() => {
     setIsTransitioning(true);
@@ -191,26 +225,55 @@ const HomeView: React.FC<{
 
   return (
     <div className="relative flex-1 flex flex-col items-center justify-center px-6 md:px-12 pb-32 md:pb-0 overflow-y-auto no-scrollbar">
-      <div className="max-w-7xl w-full mx-auto grid md:grid-cols-2 gap-12 items-center">
+      <div className="max-w-7xl w-full mx-auto grid md:grid-cols-2 gap-12 items-center py-8">
         <div className="flex flex-col items-center md:items-start text-center md:text-left relative z-10">
-          <div className="md:hidden relative w-full h-64 mt-4 mb-12 flex items-center justify-center">
-            <div className="absolute w-40 h-56 bg-orange-500/10 rounded-full blur-3xl"></div>
+          {/* Mobile High-Visibility Carousel */}
+          <div
+            className="md:hidden relative w-full h-80 mt-4 mb-16 flex items-center justify-center touch-pan-y"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
+            {/* Background Glow */}
+            <div className="absolute w-64 h-64 bg-emerald-500/10 rounded-full blur-[100px]"></div>
 
-            {/* Mobile Fan Item 1 */}
-            <div className={`absolute w-40 aspect-[3/4] rounded-[24px] bg-emerald-700/50 p-1.5 border border-white/10 overflow-hidden shadow-xl transition-all duration-700 -rotate-12 -translate-x-12 ${isTransitioning ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}>
-              <img src="/pote1.jpeg" alt="Side Product 1" className="w-full h-full object-cover rounded-[18px]" />
+            {/* Left Image */}
+            <div
+              onClick={handlePrev}
+              className={`absolute w-44 aspect-[3/4] rounded-[32px] bg-[#065f46] p-1 border-2 border-white/10 overflow-hidden shadow-2xl transition-all duration-700 -rotate-12 -translate-x-28 cursor-pointer scale-75 ${isTransitioning ? 'opacity-20 translate-x-[-150%] scale-50' : 'opacity-50 blur-[1px]'}`}
+            >
+              <img src={images[(safeIndex - 1 + images.length) % images.length].src} alt="Prev" className="w-full h-full object-cover rounded-[28px]" />
             </div>
 
-            {/* Mobile Fan Item 2 (Main) */}
-            <div className={`absolute w-44 aspect-[3/4] rounded-[32px] bg-emerald-800 p-2 border-2 border-white/20 overflow-hidden shadow-2xl transition-all duration-500 z-10 ${isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
-              <img src={SIZE_IMAGES[selectedSize] || "/castan1.jpeg"} alt="Main Bio" className="w-full h-full object-cover rounded-[24px]" />
+            {/* Main Image - Solid Custom Green Frame */}
+            <div className={`absolute w-56 aspect-[3/4] rounded-[44px] bg-[#065f46] p-2 border-4 border-[#065f46] ring-2 ring-white/20 overflow-hidden shadow-[0_40px_100px_-20px_rgba(0,0,0,0.7)] transition-all duration-500 z-10 ${isTransitioning ? 'opacity-0 scale-50 rotate-12' : 'opacity-100 scale-110'}`}>
+              <img src={images[safeIndex].src} alt="Main" className="w-full h-full object-cover rounded-[36px]" />
+              <div className="absolute inset-x-0 bottom-6 flex justify-center">
+                <div className="bg-black/60 backdrop-blur-xl text-white px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-tighter shadow-lg border border-white/10">
+                  {images[safeIndex].label}
+                </div>
+              </div>
             </div>
 
-            {/* Mobile Fan Item 3 */}
-            <div className={`absolute w-40 aspect-[3/4] rounded-[24px] bg-emerald-700/50 p-1.5 border border-white/10 overflow-hidden shadow-xl transition-all duration-700 rotate-12 translate-x-12 ${isTransitioning ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}>
-              <img src="/pote2.png" alt="Side Product 2" className="w-full h-full object-cover rounded-[18px]" />
+            {/* Right Image */}
+            <div
+              onClick={handleNext}
+              className={`absolute w-44 aspect-[3/4] rounded-[32px] bg-[#065f46] p-1 border-2 border-white/10 overflow-hidden shadow-2xl transition-all duration-700 rotate-12 translate-x-28 cursor-pointer scale-75 ${isTransitioning ? 'opacity-20 translate-x-[150%] scale-50' : 'opacity-50 blur-[1px]'}`}
+            >
+              <img src={images[(safeIndex + 1) % images.length].src} alt="Next" className="w-full h-full object-cover rounded-[28px]" />
+            </div>
+
+            {/* Dots */}
+            <div className="absolute -bottom-10 flex gap-3">
+              {images.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => onSizeChange(images[i].size)}
+                  className={`h-2 rounded-full transition-all duration-500 ${i === safeIndex ? 'bg-emerald-500 w-10 shadow-[0_0_15px_rgba(16,185,129,0.4)]' : 'bg-white/40 w-2 hover:bg-white'}`}
+                />
+              ))}
             </div>
           </div>
+
           <div className="absolute -top-20 -left-10 opacity-5 hidden lg:block pointer-events-none select-none">
             <h1 className="text-[135px] font-black tracking-tighter text-white">CASTANHAS</h1>
           </div>
@@ -239,42 +302,36 @@ const HomeView: React.FC<{
             </button>
           </div>
         </div>
-        <div className="hidden md:flex justify-center items-center relative h-[600px] w-full">
-          <div className="absolute w-[80%] h-[80%] bg-orange-500/10 rounded-full blur-3xl"></div>
 
-          <div className="relative w-full max-w-lg h-full flex items-center justify-center">
-            {/* Image 1 (Left) */}
-            <div className={`absolute w-64 aspect-[3/4] rounded-[32px] bg-emerald-700/50 p-2 border border-white/10 overflow-hidden shadow-2xl transition-all duration-700 -rotate-12 -translate-x-32 hover:rotate-[-15deg] hover:-translate-y-4 z-10 ${isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
-              <img
-                src="/pote1.jpeg"
-                alt="Product 1"
-                className="w-full h-full object-cover rounded-[24px]"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/40 to-transparent"></div>
+        {/* Desktop Carousel - Emerald Borders */}
+        <div className="hidden md:flex justify-center items-center relative h-[700px] w-full">
+          <div className="absolute w-full h-full bg-emerald-500/5 rounded-full blur-[120px]"></div>
+
+          <div className="relative w-full max-w-xl h-full flex items-center justify-center">
+            {/* Left */}
+            <div
+              onClick={handlePrev}
+              className={`absolute w-80 aspect-[3/4] rounded-[56px] bg-[#065f46] p-2 border-2 border-white/10 overflow-hidden shadow-2xl transition-all duration-700 -rotate-12 -translate-x-56 hover:rotate-[-15deg] hover:-translate-y-8 z-10 cursor-pointer ${isTransitioning ? 'opacity-20 scale-90 blur-md' : 'opacity-60 hover:opacity-100'}`}>
+              <img src={images[(safeIndex - 1 + images.length) % images.length].src} alt="Prev" className="w-full h-full object-cover rounded-[48px]" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
             </div>
 
-            {/* Image 2 (Center - Main) */}
-            <div className={`absolute w-72 aspect-[3/4] rounded-[40px] bg-emerald-800 p-3 border-2 border-white/20 overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] transition-all duration-500 z-30 hover:scale-105 ${isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
-              <img
-                src={SIZE_IMAGES[selectedSize] || "/castan1.jpeg"}
-                alt="Main Product"
-                className="w-full h-full object-cover rounded-[32px]"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/60 via-transparent to-transparent"></div>
-              <div className="absolute bottom-8 left-8 text-white">
-                <p className="text-xl font-black">Sabor Original</p>
-                <p className="text-white/60 text-[10px] font-bold uppercase tracking-widest">Premium quality</p>
+            {/* Center Main - Solid Custom Green Frame */}
+            <div className={`absolute w-96 aspect-[3/4] rounded-[70px] bg-[#065f46] p-4 border-4 border-[#065f46] ring-2 ring-white/20 overflow-hidden shadow-[0_50px_100px_-30px_rgba(0,0,0,0.8)] transition-all duration-500 z-30 hover:scale-105 ${isTransitioning ? 'opacity-0 scale-75 blur-2xl' : 'opacity-100 scale-100'}`}>
+              <img src={images[safeIndex].src} alt="Main" className="w-full h-full object-cover rounded-[56px]" />
+              <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent pointer-events-none"></div>
+              <div className="absolute bottom-12 left-12 text-white z-10">
+                <h3 className="text-3xl font-black mb-1 text-white">{images[safeIndex].label}</h3>
+                <p className="text-white/60 text-xs font-bold uppercase tracking-[4px]">Colheita selecionada</p>
               </div>
             </div>
 
-            {/* Image 3 (Right) */}
-            <div className={`absolute w-64 aspect-[3/4] rounded-[32px] bg-emerald-700/50 p-2 border border-white/10 overflow-hidden shadow-2xl transition-all duration-700 rotate-12 translate-x-32 hover:rotate-[15deg] hover:-translate-y-4 z-20 ${isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
-              <img
-                src="/pote2.png"
-                alt="Product 3"
-                className="w-full h-full object-cover rounded-[24px]"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/40 to-transparent"></div>
+            {/* Right */}
+            <div
+              onClick={handleNext}
+              className={`absolute w-80 aspect-[3/4] rounded-[56px] bg-[#065f46] p-2 border-2 border-white/10 overflow-hidden shadow-2xl transition-all duration-700 rotate-12 translate-x-56 hover:rotate-[15deg] hover:-translate-y-8 z-20 cursor-pointer ${isTransitioning ? 'opacity-20 scale-90 blur-md' : 'opacity-60 hover:opacity-100'}`}>
+              <img src={images[(safeIndex + 1) % images.length].src} alt="Next" className="w-full h-full object-cover rounded-[48px]" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
             </div>
           </div>
         </div>
