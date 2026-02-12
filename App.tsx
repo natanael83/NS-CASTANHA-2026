@@ -122,11 +122,11 @@ const ProductModal: React.FC<{
           <X className="w-5 h-5 text-white" />
         </button>
 
-        <div className="h-56 bg-gray-100 relative shrink-0">
+        <div className="h-56 bg-white relative shrink-0">
           <img
             src={product.image || SIZE_IMAGES['500g']}
             alt={product.name}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain"
           />
         </div>
 
@@ -363,8 +363,8 @@ const ProductsView: React.FC<{
               onClick={() => onProductClick(product)}
               className="group bg-white rounded-[32px] sm:rounded-[40px] p-3 sm:p-4 border border-white/10 flex flex-col h-full shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-2 cursor-pointer w-full"
             >
-              <div className="aspect-square rounded-[24px] sm:rounded-[32px] overflow-hidden mb-4 sm:mb-5 bg-gray-50 relative">
-                <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+              <div className="aspect-square rounded-[24px] sm:rounded-[32px] overflow-hidden mb-4 sm:mb-5 bg-white relative">
+                <img src={product.image} alt={product.name} className="w-full h-full object-contain p-2 group-hover:scale-110 transition-transform duration-500" />
                 <div className="absolute top-3 right-3 sm:top-4 sm:right-4 bg-white/90 backdrop-blur px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[9px] sm:text-[10px] font-black text-emerald-950 uppercase shadow-sm">Premium</div>
               </div>
               <div className="px-2 pb-2 flex-1 flex flex-col items-center text-center">
@@ -498,8 +498,8 @@ const CartView: React.FC<{
               <Trash2 className="w-5 h-5" />
             </button>
 
-            <div className="w-24 h-24 rounded-2xl bg-gray-50 shrink-0 overflow-hidden">
-              <img src={item.image || SIZE_IMAGES[item.selectedSize] || SIZE_IMAGES['500g']} alt={item.name} className="w-full h-full object-cover" />
+            <div className="w-24 h-24 rounded-2xl bg-white shrink-0 overflow-hidden border border-gray-100">
+              <img src={item.image || SIZE_IMAGES[item.selectedSize] || SIZE_IMAGES['500g']} alt={item.name} className="w-full h-full object-contain p-1" />
             </div>
 
             <div className="flex-1 py-1 flex flex-col justify-between">
