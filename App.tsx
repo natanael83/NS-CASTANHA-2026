@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Moon, Sun, Instagram, ChevronRight, MessageCircle, ShoppingBasket,
   Trash2, ArrowRight, Loader2, ChevronLeft, Heart, Minus, Plus, Check, ShoppingBag,
-  ArrowLeft, Lock, X
+  ArrowLeft, Lock, X, Search
 } from 'lucide-react';
 import { View, CartItem, Product } from './types';
 import { SIZES, WHATSAPP_NUMBER, INSTAGRAM_HANDLE, FALLBACK_PRODUCTS } from './constants';
@@ -84,6 +84,25 @@ const ProductModal: React.FC<{
 }> = ({ product, onClose, onAddToCart }) => {
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState(product.availableSizes?.[0] || '500g');
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [zoomPos, setZoomPos] = useState({ x: 0, y: 0 });
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isZoomed) return;
+    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - left) / width) * 100;
+    const y = ((e.clientY - top) / height) * 100;
+    setZoomPos({ x, y });
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!isZoomed) return;
+    const touch = e.touches[0];
+    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+    const x = ((touch.clientX - left) / width) * 100;
+    const y = ((touch.clientY - top) / height) * 100;
+    setZoomPos({ x, y });
+  };
 
   // Pricing logic
   const getPriceMultiplier = (size: string) => {
@@ -122,12 +141,32 @@ const ProductModal: React.FC<{
           <X className="w-5 h-5 text-white" />
         </button>
 
-        <div className="h-56 bg-white relative shrink-0">
+        <div
+          className="h-72 bg-white relative shrink-0 overflow-hidden cursor-zoom-in"
+          onMouseEnter={() => setIsZoomed(true)}
+          onMouseLeave={() => setIsZoomed(false)}
+          onMouseMove={handleMouseMove}
+          onTouchStart={() => setIsZoomed(true)}
+          onTouchEnd={() => setIsZoomed(false)}
+          onTouchMove={handleTouchMove}
+        >
           <img
             src={product.image || SIZE_IMAGES['500g']}
             alt={product.name}
-            className="w-full h-full object-contain"
+            className={`w-full h-full object-contain transition-transform duration-200 ease-out ${isZoomed ? 'scale-[2.5]' : 'scale-100'}`}
+            style={isZoomed ? {
+              transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`
+            } : undefined}
           />
+          {isZoomed && (
+            <div className="absolute inset-0 pointer-events-none ring-1 ring-inset ring-emerald-500/20" />
+          )}
+          {!isZoomed && (
+            <div className="absolute bottom-4 right-4 flex items-center gap-2 bg-emerald-900/10 backdrop-blur-md px-3 py-1.5 rounded-full pointer-events-none">
+              <Search className="w-3.5 h-3.5 text-emerald-900" />
+              <span className="text-[10px] font-black text-emerald-900 uppercase tracking-wider">Toque para zoom</span>
+            </div>
+          )}
         </div>
 
         <div className="p-6 overflow-y-auto">
@@ -983,7 +1022,7 @@ const App: React.FC = () => {
             <div className="max-w-7xl mx-auto px-6 py-20">
               <div className="bg-white rounded-[60px] p-12 md:p-20 shadow-2xl border border-white/10 flex flex-col md:flex-row gap-12 items-center">
                 <div className="w-48 h-48 md:w-64 md:h-64 rounded-[50px] bg-gray-50 shrink-0 overflow-hidden shadow-2xl rotate-3">
-                  <img src="https://images.unsplash.com/photo-1596506306797-400db32e6a14?auto=format&fit=crop&q=80&w=800" alt="Sobre Nós" className="w-full h-full object-cover" />
+                  <img src="/sobrenos.png" alt="Sobre Nós" className="w-full h-full object-cover" />
                 </div>
                 <div>
                   <span className="text-orange-500 font-black text-sm uppercase tracking-widest mb-4 block">Bem-vindo à NS Castanhas</span>
