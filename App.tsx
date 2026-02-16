@@ -320,7 +320,7 @@ const HomeView: React.FC<{
             Olá, Seja bem vindo
           </span>
           <h2 className="text-5xl md:text-7xl lg:text-8xl font-black text-white mb-6 leading-[0.9]">
-            Puro <br className="hidden md:block" /> <span className="text-orange-500"> sabor.</span>
+             Sabor da <br className="hidden md:block" /> <span className="text-orange-500"> Amazônia.</span>
           </h2>
           <p className="text-white/70 text-base md:text-lg max-w-md leading-relaxed mb-10">
             Cultivadas com carinho, nossas castanhas trazem a energia da natureza direto para o seu dia.
