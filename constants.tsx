@@ -28,7 +28,7 @@ export const FALLBACK_PRODUCTS: Product[] = [
     price: 15.00,
     image: '/pote_granulado.webp',
     description: 'Castanha granulada em pote, ideal para acompanhamentos e receitas.',
-    availableSizes: ['Pote 250g'],
+    availableSizes: ['Pote 150g'],
     benefits: [
       "Praticidade para o dia a dia.",
       "Ideal para iogurtes e saladas.",
@@ -38,7 +38,7 @@ export const FALLBACK_PRODUCTS: Product[] = [
   {
     id: '3',
     name: 'Castanha-do-Pará com casca',
-    price: 100.00,
+    price: 25.00,
     image: '/em casca.png',
     description: 'Castanhas in natura com casca, preservando o frescor original.',
     availableSizes: ['1kg', '2kg', '3kg'],
