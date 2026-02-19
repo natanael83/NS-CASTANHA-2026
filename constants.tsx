@@ -13,7 +13,7 @@ export const FALLBACK_PRODUCTS: Product[] = [
     id: '1',
     name: 'Castanha-do-Pará descascada',
     price: 25.00,
-    image: '/1kg castanha.png',
+    image: 'https://djctljpxkvmfogvttdle.supabase.co/storage/v1/object/public/foto%20ns/1kg%20castanha.png',
     description: 'Castanhas inteiras, descascadas e crocantes, prontas para o consumo.',
     availableSizes: ['250g', '500g', '1kg'],
     benefits: [
