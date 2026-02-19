@@ -20,7 +20,7 @@ const fetchProducts = async (): Promise<Product[]> => {
   // Return fallback products, ensuring all have an image
   return FALLBACK_PRODUCTS.map(p => ({
     ...p,
-    image: p.image || 'https://images.unsplash.com/photo-1623428187969-5da2dcea5ebf?auto=format&fit=crop&q=80&w=800'
+    image: p.image || 'https://djctljpxkvmfogvttdle.supabase.co/storage/v1/object/public/foto%20ns/sobrenos.png'
   }));
 };
 
