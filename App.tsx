@@ -67,12 +67,12 @@ const saveOrderToSupabase = async (cart: CartItem[], total: number, observation?
 
 // Images mapping for sizes
 const SIZE_IMAGES: Record<string, string> = {
-  '250g': '/pote1.jpeg',
-  'Pote 250g': '/pote2.png',
-  '500g': '/castan1.jpeg',
-  '1kg': '/castan1.jpeg',
-  '2kg': '/castan1.jpeg',
-  '3kg': '/castan1.jpeg'
+  '250g': 'pote1.jpeg',
+  'Pote 250g': 'pote2.png',
+  '500g': 'castan1.jpeg',
+  '1kg': 'castan1.jpeg',
+  '2kg': 'castan1.jpeg',
+  '3kg': 'castan1.jpeg'
 };
 
 // --- Sub-components ---
@@ -224,9 +224,9 @@ const HomeView: React.FC<{
   const [touchStart, setTouchStart] = useState<number | null>(null);
 
   const images = [
-    { size: '250g', src: '/pote1.jpeg', label: 'Pote Tradicional' },
-    { size: '500g', src: '/castan1.jpeg', label: 'Sabor Original' },
-    { size: 'Pote 250g', src: '/pote2.png', label: 'Crocância Pura' }
+    { size: '250g', src: 'pote1.jpeg', label: 'Pote Tradicional' },
+    { size: '500g', src: 'castan1.jpeg', label: 'Sabor Original' },
+    { size: 'Pote 250g', src: 'pote2.png', label: 'Crocância Pura' }
   ];
 
   const currentIndex = images.findIndex(img => img.size === selectedSize);
