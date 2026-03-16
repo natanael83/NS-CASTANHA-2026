@@ -393,7 +393,7 @@ const ProductsView: React.FC<{
         </div>
         <p className="text-emerald-100 font-medium max-w-md">Escolha o melhor da natureza para o seu bem-estar diário.</p>
       </div>
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-8 w-full justify-items-center">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-16 lg:gap-24 w-full justify-items-center">
         {products.map((product) => {
           const inCart = cart.find(item => item.id === product.id);
           return (
