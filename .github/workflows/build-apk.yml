@@ -24,6 +24,9 @@ jobs:
 
       - name: Build web app
         run: npm run build
+        env:
+          VITE_SUPABASE_URL: https://djctljpxkvmfogvttdle.supabase.co
+          VITE_SUPABASE_ANON_KEY: sb_publishable_vLRIUEsxVotvlbEzg12SdA_IBVWZXyL
 
       - name: Setup Java
         uses: actions/setup-java@v3
