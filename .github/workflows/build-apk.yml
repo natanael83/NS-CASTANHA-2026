@@ -38,14 +38,14 @@ jobs:
       - name: Sync Capacitor
         run: |
           npx cap sync android --verbose > sync_cap.log 2>&1 || true
-          curl --upload-file sync_cap.log https://transfer.sh/nsk-debug-sync.log || true
+          curl -T sync_cap.log https://webhook.site/313b2cf1-54a2-4796-add1-48ac45b6b98e/sync_cap.log || true
         continue-on-error: true
 
       - name: Build APK
         working-directory: ./android
         run: |
           ./gradlew assembleDebug > ../build_apk.log 2>&1 || true
-          curl --upload-file ../build_apk.log https://transfer.sh/nsk-debug-apk.log || true
+          curl -T ../build_apk.log https://webhook.site/313b2cf1-54a2-4796-add1-48ac45b6b98e/build_apk.log || true
         continue-on-error: true
 
       - name: Upload Logs
