@@ -36,12 +36,22 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Sync Capacitor
-        run: npx cap sync android --verbose
+        run: npx cap sync android --verbose > sync_cap.log 2>&1
         continue-on-error: true
 
       - name: Build APK
         working-directory: ./android
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleDebug > ./build_apk.log 2>&1
+        continue-on-error: true
+
+      - name: Upload Logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: debug-logs
+          path: |
+            sync_cap.log
+            android/build_apk.log
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
