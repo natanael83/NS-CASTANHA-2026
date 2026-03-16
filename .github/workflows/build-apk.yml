@@ -17,7 +17,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Install dependencies
         run: npm ci || npm install
@@ -36,26 +36,13 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Sync Capacitor
-        run: |
-          npx cap sync android --verbose > sync_cap.log 2>&1 || true
-          curl -T sync_cap.log https://webhook.site/313b2cf1-54a2-4796-add1-48ac45b6b98e/sync_cap.log || true
-        continue-on-error: true
+        run: npx cap sync android
 
       - name: Build APK
         working-directory: ./android
-        run: |
-          ./gradlew assembleDebug > ../build_apk.log 2>&1 || true
-          curl -T ../build_apk.log https://webhook.site/313b2cf1-54a2-4796-add1-48ac45b6b98e/build_apk.log || true
-        continue-on-error: true
+        run: ./gradlew assembleDebug
 
-      - name: Upload Logs
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: debug-logs
-          path: |
-            sync_cap.log
-            android/build_apk.log
+
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
