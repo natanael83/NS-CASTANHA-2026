@@ -29,7 +29,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           distribution: 'zulu'
-          java-version: '17'
+          java-version: '21'
 
       - name: Make gradlew executable
         working-directory: ./android
@@ -40,10 +40,13 @@ jobs:
 
       - name: Build APK
         working-directory: ./android
-        run: |
-          ./gradlew assembleDebug > ../build_apk.log 2>&1 || true
-          curl -T ../build_apk.log https://webhook.site/db2320f5-6655-446b-8242-e8174032d71e/build_apk.log || true
-        continue-on-error: true
+        run: ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug.apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
 
 
 
