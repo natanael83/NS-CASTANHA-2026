@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Moon, Sun, Instagram, ChevronRight, MessageCircle, ShoppingBasket,
   Trash2, ArrowRight, Loader2, ChevronLeft, Heart, Minus, Plus, Check, ShoppingBag,
-  ArrowLeft, Lock, X, Search
+  ArrowLeft, Lock, X, Search, Smartphone
 } from 'lucide-react';
 import { View, CartItem, Product } from './types';
 import { SIZES, WHATSAPP_NUMBER, INSTAGRAM_HANDLE, FALLBACK_PRODUCTS } from './constants';
@@ -338,6 +338,14 @@ const HomeView: React.FC<{
               className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 text-white hover:bg-white/10 transition-colors"
             >
               <Instagram className="w-6 h-6" />
+            </button>
+            <button
+              onClick={() => window.open('https://github.com/natanael83/NS-CASTANHA-2026/releases/download/v1.0.0/app-debug.apk', '_blank')}
+              className="w-14 h-14 rounded-2xl bg-orange-500/10 flex flex-col items-center justify-center border border-orange-500/20 text-orange-500 hover:bg-orange-500/20 transition-all group"
+              title="Baixar App Android"
+            >
+              <Smartphone className="w-6 h-6 group-hover:scale-110 transition-transform" />
+              <span className="text-[8px] font-bold uppercase mt-0.5">App</span>
             </button>
           </div>
         </div>
