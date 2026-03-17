@@ -345,7 +345,7 @@ const HomeView: React.FC<{
               title="Baixar App Android"
             >
               <Smartphone className="w-6 h-6 group-hover:scale-110 transition-transform" />
-              <span className="text-[8px] font-bold uppercase mt-0.5">App</span>
+              <span className="text-[11px] font-black uppercase mt-0.5">App</span>
             </button>
           </div>
         </div>
